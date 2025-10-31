@@ -14,8 +14,8 @@ const DatabaseManager = require('./services/DatabaseManager');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 데이터베이스 초기화
-const dbManager = new DatabaseManager();
+// 데이터베이스 매니저 인스턴스 가져오기
+const dbManager = DatabaseManager.getInstance();
 
 async function initializeApp() {
     try {

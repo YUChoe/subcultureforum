@@ -7,9 +7,14 @@ class DatabaseManager {
         this.configDB = null;
         this.forumDBs = new Map(); // categoryId -> database connection
         this.dbPath = path.join(__dirname, '../database');
+        this.isInitialized = false;
     }
 
     async initialize() {
+        if (this.isInitialized) {
+            return;
+        }
+
         try {
             // 데이터베이스 디렉토리 생성
             await this.ensureDirectoryExists(this.dbPath);
@@ -17,6 +22,7 @@ class DatabaseManager {
             // Config 데이터베이스 초기화
             await this.initializeConfigDB();
 
+            this.isInitialized = true;
             console.log('DatabaseManager 초기화 완료');
         } catch (error) {
             console.error('DatabaseManager 초기화 실패:', error);
@@ -129,6 +135,14 @@ class DatabaseManager {
     }
 
     async getForumDB(categoryId) {
+        if (!this.isInitialized) {
+            throw new Error('DatabaseManager가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+        }
+
+        if (!categoryId) {
+            throw new Error('categoryId가 필요합니다.');
+        }
+
         if (!this.forumDBs.has(categoryId)) {
             const db = await this.createForumDB(categoryId);
             this.forumDBs.set(categoryId, db);
@@ -216,6 +230,9 @@ class DatabaseManager {
     }
 
     getConfigDB() {
+        if (!this.isInitialized) {
+            throw new Error('DatabaseManager가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+        }
         return this.configDB;
     }
 
@@ -255,24 +272,114 @@ class DatabaseManager {
         });
     }
 
+    // 트랜잭션 실행
+    async runTransaction(db, queries) {
+        return new Promise((resolve, reject) => {
+            db.serialize(() => {
+                db.run('BEGIN TRANSACTION');
+
+                const results = [];
+                let hasError = false;
+
+                const executeQuery = (index) => {
+                    if (index >= queries.length) {
+                        if (hasError) {
+                            db.run('ROLLBACK', (err) => {
+                                if (err) console.error('ROLLBACK 실패:', err);
+                                reject(new Error('트랜잭션 실행 중 오류 발생'));
+                            });
+                        } else {
+                            db.run('COMMIT', (err) => {
+                                if (err) {
+                                    console.error('COMMIT 실패:', err);
+                                    reject(err);
+                                } else {
+                                    resolve(results);
+                                }
+                            });
+                        }
+                        return;
+                    }
+
+                    const { sql, params = [] } = queries[index];
+                    db.run(sql, params, function(err) {
+                        if (err) {
+                            console.error(`쿼리 실행 실패 (${index}):`, err);
+                            hasError = true;
+                        } else {
+                            results.push({ id: this.lastID, changes: this.changes });
+                        }
+                        executeQuery(index + 1);
+                    });
+                };
+
+                executeQuery(0);
+            });
+        });
+    }
+
     async close() {
-        // Config DB 닫기
-        if (this.configDB) {
-            await new Promise((resolve) => {
-                this.configDB.close(resolve);
-            });
-        }
+        try {
+            // Config DB 닫기
+            if (this.configDB) {
+                await new Promise((resolve, reject) => {
+                    this.configDB.close((err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+                this.configDB = null;
+            }
 
-        // Forum DB들 닫기
-        for (const [categoryId, db] of this.forumDBs) {
-            await new Promise((resolve) => {
-                db.close(resolve);
-            });
-        }
+            // Forum DB들 닫기
+            for (const [categoryId, db] of this.forumDBs) {
+                await new Promise((resolve, reject) => {
+                    db.close((err) => {
+                        if (err) {
+                            console.error(`Forum DB ${categoryId} 닫기 실패:`, err);
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            }
 
-        this.forumDBs.clear();
-        console.log('모든 데이터베이스 연결 종료');
+            this.forumDBs.clear();
+            this.isInitialized = false;
+            console.log('모든 데이터베이스 연결 종료');
+        } catch (error) {
+            console.error('데이터베이스 연결 종료 중 오류:', error);
+            throw error;
+        }
+    }
+
+    // 연결 상태 확인
+    isConnected() {
+        return this.isInitialized && this.configDB !== null;
+    }
+
+    // 특정 포럼 DB 연결 상태 확인
+    isForumDBConnected(categoryId) {
+        return this.forumDBs.has(categoryId);
+    }
+
+    // 연결된 포럼 DB 목록 반환
+    getConnectedForumDBs() {
+        return Array.from(this.forumDBs.keys());
     }
 }
 
-module.exports = DatabaseManager;
+// 싱글톤 인스턴스
+let instance = null;
+
+class DatabaseManagerSingleton {
+    static getInstance() {
+        if (!instance) {
+            instance = new DatabaseManager();
+        }
+        return instance;
+    }
+}
+
+module.exports = DatabaseManagerSingleton;

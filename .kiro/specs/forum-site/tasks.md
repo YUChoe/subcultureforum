@@ -1,18 +1,13 @@
 # 포럼 사이트 구현 계획
 
 - [x] 1. 프로젝트 초기 설정 및 기본 구조 생성
-
-
-
-
-
   - Node.js 프로젝트 초기화 및 필수 패키지 설치
   - 폴더 구조 생성 (routes, models, views, public, database)
   - Express.js 기본 설정 및 미들웨어 구성
   - _요구사항: 1.1, 9.1_
 
 - [ ] 2. 데이터베이스 시스템 구현
-  - [ ] 2.1 DatabaseManager 클래스 구현
+  - [x] 2.1 DatabaseManager 클래스 구현
     - SQLite 연결 관리 및 포럼별 DB 라우팅 기능
     - config.db와 forum_[categoryId].db 관리
     - _요구사항: 9.1, 9.2, 9.3_
