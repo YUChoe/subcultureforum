@@ -12,7 +12,7 @@
     - config.db와 forum_[categoryId].db 관리
     - _요구사항: 9.1, 9.2, 9.3_
 
-  - [ ] 2.2 Config 데이터베이스 스키마 생성
+  - [x] 2.2 Config 데이터베이스 스키마 생성
     - users, categories, moderator_permissions, site_settings 테이블
     - user_bans, user_activity_logs 테이블 추가
     - _요구사항: 1.1, 6.1, 7.1_
