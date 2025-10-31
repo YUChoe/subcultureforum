@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - 서브컬처 포럼</title>
+
+    <!-- PicoCSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+    <!-- 커스텀 CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="container-fluid">
+        <ul>
+            <li><strong><a href="/" class="contrast">서브컬처 포럼</a></strong></li>
+        </ul>
+        <ul>
+            <% if (isLoggedIn) { %>
+                <li>
+                    <details class="dropdown">
+                        <summary><%= user.username %></summary>
+                        <ul dir="rtl">
+                            <% if (user.role === 'super_admin') { %>
+                                <li><a href="/admin">관리자 패널</a></li>
+                            <% } %>
+                            <li><a href="/profile">프로필</a></li>
+                            <li>
+                                <form method="POST" action="/auth/logout" style="margin: 0;">
+                                    <button type="submit" class="outline" style="width: 100%; margin: 0;">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </details>
+                </li>
+            <% } else { %>
+                <li><a href="/auth/login">로그인</a></li>
+                <li><a href="/auth/register" role="button">회원가입</a></li>
+            <% } %>
+        </ul>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="container">
+        <%- body %>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="container-fluid">
+        <small>
+            © 2024 서브컬처 포럼. Node.js와 SQLite로 구축된 커뮤니티 사이트입니다.
+        </small>
+    </footer>
+
+    <!-- 커스텀 JavaScript -->
+    <script src="/js/main.js"></script>
+</body>
+</html>

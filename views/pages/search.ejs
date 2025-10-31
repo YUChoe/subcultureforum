@@ -1,0 +1,45 @@
+<h1>검색 결과</h1>
+
+<!-- 검색 폼 -->
+<form method="GET" action="/search">
+    <fieldset role="group">
+        <input type="search" name="q" placeholder="게시글 검색..." value="<%= query %>">
+        <button type="submit">검색</button>
+    </fieldset>
+
+    <% if (categoryId) { %>
+        <input type="hidden" name="category" value="<%= categoryId %>">
+    <% } %>
+</form>
+
+<% if (query) { %>
+    <h2>"<%= query %>" 검색 결과</h2>
+
+    <% if (results && results.length > 0) { %>
+        <section>
+            <% results.forEach(result => { %>
+                <article class="post-list-item">
+                    <header>
+                        <h3><a href="/forum/post/<%= result.id %>"><%= result.title %></a></h3>
+                    </header>
+                    <p><%= result.excerpt || result.content.substring(0, 200) %>...</p>
+                    <footer class="post-meta">
+                        <small>
+                            작성자: <%= result.username %> |
+                            작성일: <%= result.created_at %> |
+                            카테고리: <%= result.category_name %>
+                        </small>
+                    </footer>
+                </article>
+            <% }); %>
+        </section>
+    <% } else { %>
+        <article>
+            <p>검색 결과가 없습니다.</p>
+        </article>
+    <% } %>
+<% } else { %>
+    <article>
+        <p>검색어를 입력해주세요.</p>
+    </article>
+<% } %>

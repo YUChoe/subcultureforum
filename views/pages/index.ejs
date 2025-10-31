@@ -1,0 +1,59 @@
+<h1>포럼 카테고리</h1>
+
+<!-- 검색 폼 -->
+<section>
+    <form method="GET" action="/search" x-data="{ query: '' }">
+        <fieldset role="group">
+            <input
+                type="search"
+                name="q"
+                placeholder="게시글 검색..."
+                x-model="query"
+                value="<%= typeof query !== 'undefined' ? query : '' %>"
+            >
+            <button type="submit">검색</button>
+        </fieldset>
+    </form>
+</section>
+
+<!-- 카테고리 목록 -->
+<section>
+    <% if (categories && categories.length > 0) { %>
+        <div class="grid">
+            <% categories.forEach(category => { %>
+                <article>
+                    <header>
+                        <h3><a href="/forum/category/<%= category.id %>"><%= category.name %></a></h3>
+                    </header>
+                    <p><%= category.description || '설명이 없습니다.' %></p>
+                    <footer>
+                        <small>
+                            게시글: <%= category.post_count || 0 %>개 |
+                            최근 활동: <%= category.last_activity || '없음' %>
+                        </small>
+                    </footer>
+                </article>
+            <% }); %>
+        </div>
+    <% } else { %>
+        <article>
+            <header>
+                <h3>포럼 카테고리가 없습니다</h3>
+            </header>
+            <p>아직 생성된 포럼 카테고리가 없습니다.</p>
+            <% if (isLoggedIn && user.role === 'super_admin') { %>
+                <footer>
+                    <a href="/admin/categories/new" role="button">첫 번째 카테고리 만들기</a>
+                </footer>
+            <% } %>
+        </article>
+    <% } %>
+</section>
+
+<!-- 최근 활동 (추후 구현) -->
+<section>
+    <h2>최근 활동</h2>
+    <article>
+        <p>최근 게시글과 댓글 활동이 여기에 표시됩니다.</p>
+    </article>
+</section>

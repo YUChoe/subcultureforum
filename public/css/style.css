@@ -1,0 +1,176 @@
+/* 커스텀 스타일 */
+
+/* 네비게이션 개선 */
+nav ul li details summary {
+    cursor: pointer;
+}
+
+/* 포럼 카테고리 카드 스타일 */
+.forum-category {
+    transition: transform 0.2s ease;
+}
+
+.forum-category:hover {
+    transform: translateY(-2px);
+}
+
+/* 게시글 목록 스타일 */
+.post-list-item {
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    padding: 1rem 0;
+}
+
+.post-list-item:last-child {
+    border-bottom: none;
+}
+
+.post-meta {
+    color: var(--pico-muted-color);
+    font-size: 0.875rem;
+}
+
+/* 댓글 스타일 */
+.comment {
+    border-left: 3px solid var(--pico-primary);
+    padding-left: 1rem;
+    margin: 1rem 0;
+}
+
+.comment-author {
+    font-weight: bold;
+    color: var(--pico-primary);
+}
+
+.comment-date {
+    color: var(--pico-muted-color);
+    font-size: 0.875rem;
+}
+
+/* 관리자 패널 스타일 */
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--pico-card-background-color);
+    border-radius: var(--pico-border-radius);
+    border: 1px solid var(--pico-card-border-color);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--pico-primary);
+}
+
+.stat-label {
+    color: var(--pico-muted-color);
+    font-size: 0.875rem;
+}
+
+/* 정렬 옵션 스타일 */
+.sort-options {
+    margin-bottom: 1rem;
+}
+
+.sort-options a {
+    margin-right: 1rem;
+    text-decoration: none;
+}
+
+.sort-options a.active {
+    font-weight: bold;
+    color: var(--pico-primary);
+}
+
+/* 페이지네이션 스타일 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+}
+
+.pagination a,
+.pagination span {
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+}
+
+.pagination .current {
+    background: var(--pico-primary);
+    color: var(--pico-primary-inverse);
+    border-color: var(--pico-primary);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .admin-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .sort-options {
+        text-align: center;
+    }
+
+    .sort-options a {
+        display: block;
+        margin: 0.5rem 0;
+    }
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+    .post-list-item {
+        border-bottom-color: var(--pico-muted-border-color);
+    }
+}
+
+/* 로딩 애니메이션 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--pico-muted-color);
+    border-radius: 50%;
+    border-top-color: var(--pico-primary);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 알림 메시지 스타일 */
+.alert {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: var(--pico-border-radius);
+    border: 1px solid;
+}
+
+.alert-success {
+    background-color: var(--pico-ins-color);
+    border-color: var(--pico-ins-color);
+    color: var(--pico-color);
+}
+
+.alert-error {
+    background-color: var(--pico-del-color);
+    border-color: var(--pico-del-color);
+    color: var(--pico-color);
+}
+
+.alert-warning {
+    background-color: var(--pico-mark-background-color);
+    border-color: var(--pico-mark-color);
+    color: var(--pico-color);
+}
