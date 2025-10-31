@@ -173,60 +173,87 @@ class DatabaseManager {
     }
 
     async createForumTables(db) {
-        const tables = [
-            // 게시글 테이블
-            `CREATE TABLE IF NOT EXISTS posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                category_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                title VARCHAR(200) NOT NULL,
-                content TEXT NOT NULL,
-                view_count INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_comment_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )`,
+        try {
+            // 스키마 템플릿 파일에서 SQL 읽기
+            const schemaPath = path.join(__dirname, '../database/schema/forum_schema.sql');
+            const schemaSQL = await fs.readFile(schemaPath, 'utf8');
 
-            // 댓글 테이블
-            `CREATE TABLE IF NOT EXISTS comments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                post_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                content TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
-            )`,
+            // SQL 문을 더 정확하게 분리하여 실행
+            const statements = this.parseSQLStatements(schemaSQL);
 
-            // FTS5 검색 인덱스
-            `CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
-                title, content, content='posts', content_rowid='id'
-            )`
-        ];
+            for (const statement of statements) {
+                if (statement.trim().length > 0) {
+                    await this.runQuery(db, statement);
+                }
+            }
 
-        for (const tableSQL of tables) {
-            await this.runQuery(db, tableSQL);
+            console.log('Forum 데이터베이스 스키마 템플릿 적용 완료');
+        } catch (error) {
+            console.error('Forum 스키마 템플릿 적용 실패:', error);
+            throw error;
+        }
+    }
+
+    // SQL 문을 정확하게 파싱하는 헬퍼 메서드
+    parseSQLStatements(sql) {
+        const statements = [];
+        let currentStatement = '';
+        let inTrigger = false;
+        let triggerDepth = 0;
+
+        const lines = sql.split('\n');
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+
+            // 주석 라인 건너뛰기
+            if (trimmedLine.startsWith('--') || trimmedLine.length === 0) {
+                continue;
+            }
+
+            // 현재 문장에 라인 추가
+            if (currentStatement.length > 0) {
+                currentStatement += '\n';
+            }
+            currentStatement += line;
+
+            // 트리거 시작 감지
+            if (trimmedLine.toUpperCase().includes('CREATE TRIGGER')) {
+                inTrigger = true;
+                triggerDepth = 0;
+            }
+
+            // BEGIN/END 블록 추적 (트리거용)
+            if (inTrigger) {
+                if (trimmedLine.toUpperCase().includes('BEGIN')) {
+                    triggerDepth++;
+                }
+                if (trimmedLine.toUpperCase().includes('END')) {
+                    triggerDepth--;
+                }
+            }
+
+            // 문장 종료 조건 확인
+            if (trimmedLine.endsWith(';')) {
+                if (inTrigger && triggerDepth > 0) {
+                    // 트리거 내부에서는 세미콜론이 있어도 계속
+                    continue;
+                } else {
+                    // 일반 문장이거나 트리거가 완료된 경우
+                    statements.push(currentStatement.trim());
+                    currentStatement = '';
+                    inTrigger = false;
+                    triggerDepth = 0;
+                }
+            }
         }
 
-        // FTS5 트리거 생성
-        const triggers = [
-            `CREATE TRIGGER IF NOT EXISTS posts_ai AFTER INSERT ON posts BEGIN
-                INSERT INTO posts_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
-            END`,
-
-            `CREATE TRIGGER IF NOT EXISTS posts_ad AFTER DELETE ON posts BEGIN
-                INSERT INTO posts_fts(posts_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
-            END`,
-
-            `CREATE TRIGGER IF NOT EXISTS posts_au AFTER UPDATE ON posts BEGIN
-                INSERT INTO posts_fts(posts_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
-                INSERT INTO posts_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
-            END`
-        ];
-
-        for (const triggerSQL of triggers) {
-            await this.runQuery(db, triggerSQL);
+        // 마지막 문장이 세미콜론으로 끝나지 않은 경우
+        if (currentStatement.trim().length > 0) {
+            statements.push(currentStatement.trim());
         }
+
+        return statements.filter(stmt => stmt.length > 0);
     }
 
     getConfigDB() {
@@ -367,6 +394,178 @@ class DatabaseManager {
     // 연결된 포럼 DB 목록 반환
     getConnectedForumDBs() {
         return Array.from(this.forumDBs.keys());
+    }
+
+    // 새 포럼 카테고리 생성 및 DB 초기화
+    async createNewForumCategory(categoryData) {
+        if (!this.isInitialized) {
+            throw new Error('DatabaseManager가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+        }
+
+        const { name, description, displayOrder = 0 } = categoryData;
+
+        if (!name || name.trim().length === 0) {
+            throw new Error('카테고리 이름이 필요합니다.');
+        }
+
+        try {
+            // 트랜잭션으로 카테고리 생성과 DB 초기화를 원자적으로 처리
+            const result = await this.runQuery(
+                this.configDB,
+                `INSERT INTO categories (name, description, display_order, is_active)
+                 VALUES (?, ?, ?, 1)`,
+                [name.trim(), description || '', displayOrder]
+            );
+
+            const categoryId = result.id;
+
+            // 새 포럼 DB 생성 및 초기화
+            const forumDB = await this.createForumDB(categoryId);
+
+            console.log(`새 포럼 카테고리 생성 완료: ID=${categoryId}, Name=${name}`);
+
+            return {
+                id: categoryId,
+                name: name.trim(),
+                description: description || '',
+                display_order: displayOrder,
+                is_active: true,
+                created_at: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('포럼 카테고리 생성 실패:', error);
+            throw error;
+        }
+    }
+
+    // 포럼 카테고리 삭제 및 관련 DB 정리
+    async deleteForumCategory(categoryId) {
+        if (!this.isInitialized) {
+            throw new Error('DatabaseManager가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+        }
+
+        if (!categoryId) {
+            throw new Error('categoryId가 필요합니다.');
+        }
+
+        try {
+            // 카테고리 존재 확인
+            const category = await this.getQuery(
+                this.configDB,
+                'SELECT * FROM categories WHERE id = ?',
+                [categoryId]
+            );
+
+            if (!category) {
+                throw new Error(`카테고리 ID ${categoryId}를 찾을 수 없습니다.`);
+            }
+
+            // 트랜잭션으로 처리
+            const queries = [
+                // 모더레이터 권한 삭제
+                { sql: 'DELETE FROM moderator_permissions WHERE category_id = ?', params: [categoryId] },
+                // 카테고리 삭제
+                { sql: 'DELETE FROM categories WHERE id = ?', params: [categoryId] }
+            ];
+
+            await this.runTransaction(this.configDB, queries);
+
+            // 포럼 DB 연결 종료 및 파일 삭제
+            if (this.forumDBs.has(categoryId)) {
+                const forumDB = this.forumDBs.get(categoryId);
+                await new Promise((resolve, reject) => {
+                    forumDB.close((err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+                this.forumDBs.delete(categoryId);
+            }
+
+            // DB 파일 삭제
+            const forumDBPath = path.join(this.dbPath, `forum_${categoryId}.db`);
+            try {
+                await fs.unlink(forumDBPath);
+                console.log(`포럼 DB 파일 삭제 완료: ${forumDBPath}`);
+            } catch (error) {
+                if (error.code !== 'ENOENT') {
+                    console.warn(`포럼 DB 파일 삭제 실패: ${error.message}`);
+                }
+            }
+
+            console.log(`포럼 카테고리 삭제 완료: ID=${categoryId}, Name=${category.name}`);
+
+            return true;
+        } catch (error) {
+            console.error('포럼 카테고리 삭제 실패:', error);
+            throw error;
+        }
+    }
+
+    // 모든 포럼 카테고리 목록 조회
+    async getAllCategories() {
+        if (!this.isInitialized) {
+            throw new Error('DatabaseManager가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+        }
+
+        try {
+            const categories = await this.allQuery(
+                this.configDB,
+                'SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order, created_at'
+            );
+
+            return categories;
+        } catch (error) {
+            console.error('카테고리 목록 조회 실패:', error);
+            throw error;
+        }
+    }
+
+    // 포럼 DB 스키마 검증
+    async validateForumSchema(categoryId) {
+        if (!this.isInitialized) {
+            throw new Error('DatabaseManager가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+        }
+
+        try {
+            const forumDB = await this.getForumDB(categoryId);
+
+            // 필수 테이블 존재 확인
+            const requiredTables = ['posts', 'comments', 'posts_fts'];
+            const existingTables = await this.allQuery(
+                forumDB,
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            );
+
+            const tableNames = existingTables.map(t => t.name);
+            const missingTables = requiredTables.filter(table => !tableNames.includes(table));
+
+            if (missingTables.length > 0) {
+                console.warn(`포럼 DB ${categoryId}에 누락된 테이블: ${missingTables.join(', ')}`);
+                return false;
+            }
+
+            // 필수 트리거 존재 확인
+            const requiredTriggers = ['posts_ai', 'posts_ad', 'posts_au', 'comments_ai', 'comments_au'];
+            const existingTriggers = await this.allQuery(
+                forumDB,
+                "SELECT name FROM sqlite_master WHERE type='trigger'"
+            );
+
+            const triggerNames = existingTriggers.map(t => t.name);
+            const missingTriggers = requiredTriggers.filter(trigger => !triggerNames.includes(trigger));
+
+            if (missingTriggers.length > 0) {
+                console.warn(`포럼 DB ${categoryId}에 누락된 트리거: ${missingTriggers.join(', ')}`);
+                return false;
+            }
+
+            console.log(`포럼 DB ${categoryId} 스키마 검증 완료`);
+            return true;
+        } catch (error) {
+            console.error(`포럼 DB ${categoryId} 스키마 검증 실패:`, error);
+            return false;
+        }
     }
 }
 

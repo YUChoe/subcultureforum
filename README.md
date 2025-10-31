@@ -96,6 +96,36 @@ npm start
 - `comments`: 댓글
 - `posts_fts`: FTS5 검색 인덱스
 
+## 데이터베이스 관리
+
+### 스키마 검증
+전체 데이터베이스 스키마를 검증합니다:
+```bash
+npm run db:verify
+```
+
+### 스키마 복구
+손상된 스키마를 자동으로 복구합니다:
+```bash
+npm run db:repair
+```
+
+### 새 포럼 카테고리 생성
+새로운 포럼 카테고리와 데이터베이스를 생성합니다:
+```bash
+npm run db:create-category "카테고리명" "설명"
+```
+
+### 수동 포럼 DB 초기화
+특정 카테고리 ID에 대해 포럼 DB를 초기화합니다:
+```bash
+node database/init_forum_schema.js init <category_id>
+```
+
+### 스키마 파일 위치
+- Config DB 스키마: `database/schema/config_schema.sql`
+- Forum DB 스키마 템플릿: `database/schema/forum_schema.sql`
+
 ## 개발 가이드
 
 ### 새로운 라우터 추가

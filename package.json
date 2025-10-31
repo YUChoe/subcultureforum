@@ -6,7 +6,12 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:verify": "node database/verify_all_schemas.js",
+    "db:repair": "node database/verify_all_schemas.js repair",
+    "db:init-config": "node database/init_config_db.js",
+    "db:init-forum": "node database/init_forum_schema.js",
+    "db:create-category": "node database/init_forum_schema.js create"
   },
   "keywords": ["forum", "community", "nodejs", "sqlite"],
   "author": "",
