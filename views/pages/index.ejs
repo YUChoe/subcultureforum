@@ -1,4 +1,25 @@
-<h1>포럼 카테고리</h1>
+<header>
+    <h1>포럼 카테고리</h1>
+    <% if (isLoggedIn) { %>
+        <nav>
+            <ul>
+                <li>환영합니다, <%= user.username %>님!</li>
+                <li><a href="/profile">프로필</a></li>
+                <% if (user.role === 'super_admin') { %>
+                    <li><a href="/admin">관리자</a></li>
+                <% } %>
+                <li><a href="/auth/logout">로그아웃</a></li>
+            </ul>
+        </nav>
+    <% } else { %>
+        <nav>
+            <ul>
+                <li><a href="/auth/login">로그인</a></li>
+                <li><a href="/auth/register">회원가입</a></li>
+            </ul>
+        </nav>
+    <% } %>
+</header>
 
 <!-- 검색 폼 -->
 <section>

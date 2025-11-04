@@ -45,14 +45,21 @@ async function initializeApp() {
         }));
 
         // 사용자 인증 미들웨어
-        const { loadUser } = require('./middleware/auth');
+        const { loadUser, checkUserBan, checkRoutePermission } = require('./middleware/auth');
         app.use(loadUser);
+
+        // 사용자 차단 상태 확인 미들웨어
+        app.use(checkUserBan);
 
         // 전역 변수 설정 (템플릿에서 사용)
         app.use((req, res, next) => {
             res.locals.isLoggedIn = !!req.user;
+            res.locals.user = req.user;
             next();
         });
+
+        // 라우트별 권한 검사 미들웨어 (라우터 설정 전에 적용)
+        app.use(checkRoutePermission);
 
         // 라우터 설정
         app.use('/', indexRouter);

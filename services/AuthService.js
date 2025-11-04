@@ -287,14 +287,23 @@ class AuthService {
                     return user.role !== null;
 
                 case 'moderate_category':
-                    // 해당 카테고리의 모더레이터이거나 슈퍼 관리자
+                    // 해당 서브포럼(카테고리)의 모더레이터이거나 슈퍼 관리자
                     if (user.role === 'super_admin') {
                         return true;
                     }
 
+                    // 모더레이터 역할이고 특정 카테고리 ID가 제공된 경우
                     if (user.role === 'moderator' && resourceId) {
-                        return await this.isModeratorOfCategory(userId, resourceId);
+                        const isCategoryModerator = await this.isModeratorOfCategory(userId, resourceId);
+                        return isCategoryModerator;
                     }
+
+                    // 일반 모더레이터 권한 (카테고리 지정 없음)
+                    if (user.role === 'moderator' && !resourceId) {
+                        // 최소 하나의 카테고리에서 모더레이터 권한이 있는지 확인
+                        return await this.hasAnyModeratorPermission(userId);
+                    }
+
                     return false;
 
                 case 'admin_site':
@@ -321,7 +330,7 @@ class AuthService {
     }
 
     /**
-     * 특정 카테고리의 모더레이터인지 확인
+     * 특정 서브포럼(카테고리)의 모더레이터인지 확인
      * @param {number} userId - 사용자 ID
      * @param {number} categoryId - 카테고리 ID
      * @returns {Promise<boolean>} 모더레이터 여부
@@ -340,10 +349,67 @@ class AuthService {
                 [userId, categoryId]
             );
 
-            return permission !== null;
+            return permission !== null && permission !== undefined;
+        } catch (error) {
+            console.error('서브포럼 모더레이터 권한 확인 실패:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 사용자가 최소 하나의 카테고리에서 모더레이터 권한을 가지고 있는지 확인
+     * @param {number} userId - 사용자 ID
+     * @returns {Promise<boolean>} 모더레이터 권한 여부
+     */
+    async hasAnyModeratorPermission(userId) {
+        if (!userId) {
+            return false;
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const permission = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id FROM moderator_permissions WHERE user_id = ? LIMIT 1',
+                [userId]
+            );
+
+            return permission !== null && permission !== undefined;
         } catch (error) {
             console.error('모더레이터 권한 확인 실패:', error);
             return false;
+        }
+    }
+
+    /**
+     * 사용자가 모더레이터 권한을 가진 모든 카테고리 목록 조회
+     * @param {number} userId - 사용자 ID
+     * @returns {Promise<Array>} 카테고리 목록
+     */
+    async getModeratedCategories(userId) {
+        if (!userId) {
+            return [];
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const stmt = configDB.prepare(`
+                SELECT c.id, c.name, c.description
+                FROM categories c
+                JOIN moderator_permissions mp ON c.id = mp.category_id
+                WHERE mp.user_id = ? AND c.is_active = 1
+                ORDER BY c.display_order, c.name
+            `);
+
+            const categories = stmt.all(userId);
+            stmt.finalize();
+
+            return categories || [];
+        } catch (error) {
+            console.error('모더레이터 카테고리 목록 조회 실패:', error);
+            return [];
         }
     }
 
@@ -600,6 +666,16 @@ class AuthService {
             console.error('사용자 차단 상태 확인 실패:', error);
             return null;
         }
+    }
+
+    /**
+     * 사용자 차단 여부 확인 (간단한 boolean 반환)
+     * @param {number} userId - 사용자 ID
+     * @returns {Promise<boolean>} 차단 여부
+     */
+    async isUserBanned(userId) {
+        const banStatus = await this.getUserBanStatus(userId);
+        return banStatus !== null && banStatus !== undefined;
     }
 
     /**

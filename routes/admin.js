@@ -1,20 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const { requireAdmin } = require('../middleware/auth');
 const router = express.Router();
-
-// 관리자 권한 확인 미들웨어
-const requireAdmin = (req, res, next) => {
-    if (!req.session.user || req.session.user.role !== 'super_admin') {
-        return res.status(403).render('pages/error', {
-            title: '접근 권한 없음',
-            error: {
-                status: 403,
-                message: '관리자 권한이 필요합니다.'
-            }
-        });
-    }
-    next();
-};
 
 // 관리자 대시보드
 router.get('/', requireAdmin, async (req, res) => {

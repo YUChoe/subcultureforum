@@ -1,5 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const { authService } = require('../middleware/auth');
 const router = express.Router();
 
 // 로그인 페이지
@@ -30,17 +31,19 @@ router.post('/login', [
 
         const { username, password } = req.body;
 
-        // TODO: AuthService에서 로그인 검증
-        // const user = await authService.login(username, password);
+        // AuthService에서 로그인 검증
+        const user = await authService.login(username, password);
 
-        // 임시 로그인 성공 처리
-        req.session.user = {
-            id: 1,
-            username: username,
-            role: 'user'
-        };
-
-        res.redirect('/');
+        if (user) {
+            // 세션 생성
+            authService.createSession(req.session, user);
+            res.redirect('/');
+        } else {
+            res.render('pages/auth/login', {
+                title: '로그인',
+                error: '사용자명 또는 비밀번호가 올바르지 않습니다.'
+            });
+        }
     } catch (error) {
         console.error('로그인 오류:', error);
         res.render('pages/auth/login', {
@@ -94,15 +97,11 @@ router.post('/register', [
 
         const { username, email, password } = req.body;
 
-        // TODO: AuthService에서 회원가입 처리
-        // const user = await authService.register(username, email, password);
+        // AuthService에서 회원가입 처리
+        const user = await authService.register({ username, email, password });
 
-        // 임시 회원가입 성공 처리
-        req.session.user = {
-            id: 1,
-            username: username,
-            role: 'user'
-        };
+        // 회원가입 성공 후 자동 로그인
+        authService.createSession(req.session, user);
 
         res.redirect('/');
     } catch (error) {
@@ -114,14 +113,31 @@ router.post('/register', [
     }
 });
 
-// 로그아웃
-router.post('/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('로그아웃 오류:', err);
-        }
+// 로그아웃 (GET과 POST 모두 지원)
+router.get('/logout', (req, res) => {
+    if (req.session) {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('로그아웃 오류:', err);
+            }
+            res.redirect('/');
+        });
+    } else {
         res.redirect('/');
-    });
+    }
+});
+
+router.post('/logout', (req, res) => {
+    if (req.session) {
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('로그아웃 오류:', err);
+            }
+            res.redirect('/');
+        });
+    } else {
+        res.redirect('/');
+    }
 });
 
 module.exports = router;
