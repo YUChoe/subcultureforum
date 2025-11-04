@@ -544,6 +544,251 @@ class ForumService {
     }
 
     /**
+     * 게시글 상세 조회 및 조회수 증가
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {boolean} incrementView - 조회수 증가 여부 (기본값: true)
+     * @returns {Promise<Object|null>} 게시글 정보
+     */
+    async getPost(postId, subforumId, incrementView = true) {
+        if (!postId || !subforumId) {
+            return null;
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+            const configDB = this.dbManager.getConfigDB();
+
+            // 게시글 조회
+            const post = await this.dbManager.getQuery(
+                forumDB,
+                `SELECT
+                    p.id,
+                    p.category_id,
+                    p.user_id,
+                    p.title,
+                    p.content,
+                    p.view_count,
+                    p.created_at,
+                    p.updated_at,
+                    p.last_comment_at
+                 FROM posts p
+                 WHERE p.id = ? AND p.category_id = ?`,
+                [postId, subforumId]
+            );
+
+            if (!post) {
+                return null;
+            }
+
+            // 작성자 정보 조회
+            const user = await this.dbManager.getQuery(
+                configDB,
+                'SELECT username, role FROM users WHERE id = ?',
+                [post.user_id]
+            );
+
+            // 조회수 증가
+            if (incrementView) {
+                await this.dbManager.runQuery(
+                    forumDB,
+                    'UPDATE posts SET view_count = view_count + 1 WHERE id = ?',
+                    [postId]
+                );
+                post.view_count += 1;
+            }
+
+            // 댓글 수 조회
+            const commentCountResult = await this.dbManager.getQuery(
+                forumDB,
+                'SELECT COUNT(*) as count FROM comments WHERE post_id = ?',
+                [postId]
+            );
+
+            return {
+                ...post,
+                username: user?.username || '알 수 없음',
+                role: user?.role || 'user',
+                comment_count: commentCountResult?.count || 0
+            };
+        } catch (error) {
+            console.error('게시글 조회 실패:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 게시글 작성
+     * @param {number} userId - 작성자 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {string} title - 게시글 제목
+     * @param {string} content - 게시글 내용
+     * @returns {Promise<number>} 생성된 게시글 ID
+     */
+    async createPost(userId, subforumId, title, content) {
+        if (!userId || !subforumId || !title || !content) {
+            throw new Error('필수 정보가 누락되었습니다.');
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+            console.log(`게시글 생성 시도: 서브포럼 ${subforumId}, 사용자 ${userId}, 제목: ${title}`);
+
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                `INSERT INTO posts (category_id, user_id, title, content, created_at, updated_at, last_comment_at)
+                 VALUES (?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))`,
+                [subforumId, userId, title, content]
+            );
+
+            console.log('DB 삽입 결과:', result);
+
+            if (!result.id) {
+                throw new Error('게시글 생성에 실패했습니다.');
+            }
+
+            console.log(`게시글 생성 완료: ID ${result.id}, 서브포럼 ${subforumId}`);
+            return result.id;
+        } catch (error) {
+            console.error('게시글 작성 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 게시글 수정
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {number} userId - 수정자 ID
+     * @param {string} title - 수정할 제목
+     * @param {string} content - 수정할 내용
+     * @returns {Promise<boolean>} 수정 성공 여부
+     */
+    async updatePost(postId, subforumId, userId, title, content) {
+        if (!postId || !subforumId || !userId || !title || !content) {
+            throw new Error('필수 정보가 누락되었습니다.');
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            // 게시글 존재 및 권한 확인
+            const existingPost = await this.dbManager.getQuery(
+                forumDB,
+                'SELECT user_id FROM posts WHERE id = ? AND category_id = ?',
+                [postId, subforumId]
+            );
+
+            if (!existingPost) {
+                throw new Error('게시글을 찾을 수 없습니다.');
+            }
+
+            if (existingPost.user_id !== userId) {
+                throw new Error('게시글 수정 권한이 없습니다.');
+            }
+
+            // 게시글 수정
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                `UPDATE posts
+                 SET title = ?, content = ?, updated_at = datetime('now')
+                 WHERE id = ? AND category_id = ?`,
+                [title, content, postId, subforumId]
+            );
+
+            if (result.changes === 0) {
+                throw new Error('게시글 수정에 실패했습니다.');
+            }
+
+            console.log(`게시글 수정 완료: ID ${postId}, 서브포럼 ${subforumId}`);
+            return true;
+        } catch (error) {
+            console.error('게시글 수정 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 게시글 삭제
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {number} userId - 삭제 요청자 ID
+     * @param {boolean} isModerator - 모더레이터 여부
+     * @returns {Promise<boolean>} 삭제 성공 여부
+     */
+    async deletePost(postId, subforumId, userId, isModerator = false) {
+        if (!postId || !subforumId || !userId) {
+            throw new Error('필수 정보가 누락되었습니다.');
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            // 게시글 존재 및 권한 확인
+            const existingPost = await this.dbManager.getQuery(
+                forumDB,
+                'SELECT user_id FROM posts WHERE id = ? AND category_id = ?',
+                [postId, subforumId]
+            );
+
+            if (!existingPost) {
+                throw new Error('게시글을 찾을 수 없습니다.');
+            }
+
+            // 작성자이거나 모더레이터인 경우에만 삭제 가능
+            if (existingPost.user_id !== userId && !isModerator) {
+                throw new Error('게시글 삭제 권한이 없습니다.');
+            }
+
+            // 게시글 삭제 (댓글은 CASCADE로 자동 삭제됨)
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                'DELETE FROM posts WHERE id = ? AND category_id = ?',
+                [postId, subforumId]
+            );
+
+            if (result.changes === 0) {
+                throw new Error('게시글 삭제에 실패했습니다.');
+            }
+
+            console.log(`게시글 삭제 완료: ID ${postId}, 서브포럼 ${subforumId}`);
+            return true;
+        } catch (error) {
+            console.error('게시글 삭제 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 게시글의 last_comment_at 업데이트
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @returns {Promise<boolean>} 업데이트 성공 여부
+     */
+    async updatePostLastCommentTime(postId, subforumId) {
+        if (!postId || !subforumId) {
+            return false;
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                `UPDATE posts
+                 SET last_comment_at = datetime('now')
+                 WHERE id = ? AND category_id = ?`,
+                [postId, subforumId]
+            );
+
+            return result.changes > 0;
+        } catch (error) {
+            console.error('게시글 last_comment_at 업데이트 실패:', error);
+            return false;
+        }
+    }
+
+    /**
      * 사용자별 게시글 목록 조회
      * @param {number} userId - 사용자 ID
      * @param {Object} options - 조회 옵션

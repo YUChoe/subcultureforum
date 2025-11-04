@@ -1,5 +1,5 @@
 <header>
-    <h1>포럼 카테고리</h1>
+    <h1>포럼 서브포럼</h1>
     <% if (isLoggedIn) { %>
         <nav>
             <ul>
@@ -37,20 +37,21 @@
     </form>
 </section>
 
-<!-- 카테고리 목록 -->
+<!-- 서브포럼 목록 -->
 <section>
-    <% if (categories && categories.length > 0) { %>
+    <% if (subforums && subforums.length > 0) { %>
         <div class="grid">
-            <% categories.forEach(category => { %>
+            <% subforums.forEach(subforum => { %>
                 <article>
                     <header>
-                        <h3><a href="/forum/category/<%= category.id %>"><%= category.name %></a></h3>
+                        <h3><a href="/forum/subforum/<%= subforum.id %>"><%= subforum.name %></a></h3>
                     </header>
-                    <p><%= category.description || '설명이 없습니다.' %></p>
+                    <p><%= subforum.description || '설명이 없습니다.' %></p>
                     <footer>
                         <small>
-                            게시글: <%= category.post_count || 0 %>개 |
-                            최근 활동: <%= category.last_activity || '없음' %>
+                            게시글: <%= subforum.post_count || 0 %>개 |
+                            댓글: <%= subforum.comment_count || 0 %>개 |
+                            최근 활동: <%= subforum.last_activity_at ? new Date(subforum.last_activity_at).toLocaleDateString('ko-KR') : '없음' %>
                         </small>
                     </footer>
                 </article>
@@ -59,22 +60,70 @@
     <% } else { %>
         <article>
             <header>
-                <h3>포럼 카테고리가 없습니다</h3>
+                <h3>서브포럼이 없습니다</h3>
             </header>
-            <p>아직 생성된 포럼 카테고리가 없습니다.</p>
+            <p>아직 생성된 서브포럼이 없습니다.</p>
             <% if (isLoggedIn && user.role === 'super_admin') { %>
                 <footer>
-                    <a href="/admin/categories/new" role="button">첫 번째 카테고리 만들기</a>
+                    <a href="/admin/forums/new" role="button">첫 번째 서브포럼 만들기</a>
                 </footer>
             <% } %>
         </article>
     <% } %>
 </section>
 
-<!-- 최근 활동 (추후 구현) -->
+<!-- 인기 게시글 -->
+<% if (popularPosts && popularPosts.length > 0) { %>
+<section>
+    <h2>인기 게시글</h2>
+    <div class="grid">
+        <% popularPosts.forEach(post => { %>
+            <article>
+                <header>
+                    <h4>
+                        <a href="/forum/subforum/<%= post.category_id %>/post/<%= post.id %>">
+                            <%= post.title %>
+                        </a>
+                    </h4>
+                </header>
+                <footer>
+                    <small>
+                        <%= post.subforum_name || '' %> |
+                        <%= post.username || '알 수 없음' %> |
+                        조회 <%= post.view_count %> |
+                        댓글 <%= post.comment_count %>
+                    </small>
+                </footer>
+            </article>
+        <% }); %>
+    </div>
+</section>
+<% } %>
+
+<!-- 최근 활동 게시글 -->
+<% if (recentActivityPosts && recentActivityPosts.length > 0) { %>
 <section>
     <h2>최근 활동</h2>
-    <article>
-        <p>최근 게시글과 댓글 활동이 여기에 표시됩니다.</p>
-    </article>
+    <div class="grid">
+        <% recentActivityPosts.forEach(post => { %>
+            <article>
+                <header>
+                    <h4>
+                        <a href="/forum/subforum/<%= post.category_id %>/post/<%= post.id %>">
+                            <%= post.title %>
+                        </a>
+                    </h4>
+                </header>
+                <footer>
+                    <small>
+                        <%= post.subforum_name || '' %> |
+                        <%= post.username || '알 수 없음' %> |
+                        최근 댓글: <%= post.last_commenter || '없음' %> |
+                        <%= new Date(post.last_comment_at).toLocaleDateString('ko-KR') %>
+                    </small>
+                </footer>
+            </article>
+        <% }); %>
+    </div>
 </section>
+<% } %>

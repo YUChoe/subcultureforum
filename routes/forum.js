@@ -58,19 +58,155 @@ router.get('/subforum/:id', async (req, res) => {
     }
 });
 
-// 게시글 상세 보기
-router.get('/post/:id', async (req, res) => {
-    try {
-        const postId = parseInt(req.params.id);
+// 게시글 작성 페이지 (로그인 필요) - 구체적인 라우트를 먼저 등록
+router.get('/subforum/:subforumId/post/new', async (req, res) => {
+    if (!req.user) {
+        return res.redirect('/auth/login');
+    }
 
-        // TODO: ForumService에서 게시글과 댓글 가져오기
-        const post = { id: postId, title: '임시 게시글', content: '임시 내용' };
-        const comments = []; // 임시 빈 배열
+    try {
+        const subforumId = parseInt(req.params.subforumId);
+
+        // 서브포럼 정보 조회
+        const subforum = await forumService.getSubforumById(subforumId);
+        if (!subforum) {
+            return res.status(404).render('pages/error', {
+                title: '서브포럼을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 서브포럼을 찾을 수 없습니다.'
+                }
+            });
+        }
+
+        res.render('pages/forum/new-post', {
+            title: `새 게시글 작성 - ${subforum.name}`,
+            subforum: subforum,
+            error: null,
+            formData: {}
+        });
+    } catch (error) {
+        console.error('게시글 작성 페이지 오류:', error);
+        res.status(500).render('pages/error', {
+            title: '서버 오류',
+            error: {
+                status: 500,
+                message: '페이지를 로드하는 중 오류가 발생했습니다.'
+            }
+        });
+    }
+});
+
+// 게시글 작성 처리
+router.post('/subforum/:subforumId/post/new', [
+    body('title')
+        .isLength({ min: 1, max: 200 })
+        .withMessage('제목은 1-200자 사이여야 합니다'),
+    body('content')
+        .isLength({ min: 1 })
+        .withMessage('내용을 입력해주세요')
+], async (req, res) => {
+    if (!req.user) {
+        return res.redirect('/auth/login');
+    }
+
+    try {
+        const errors = validationResult(req);
+        const subforumId = parseInt(req.params.subforumId);
+        const { title, content } = req.body;
+
+        // 서브포럼 정보 조회
+        const subforum = await forumService.getSubforumById(subforumId);
+        if (!subforum) {
+            return res.status(404).render('pages/error', {
+                title: '서브포럼을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 서브포럼을 찾을 수 없습니다.'
+                }
+            });
+        }
+
+        if (!errors.isEmpty()) {
+            return res.render('pages/forum/new-post', {
+                title: `새 게시글 작성 - ${subforum.name}`,
+                subforum: subforum,
+                error: errors.array()[0].msg,
+                formData: { title, content }
+            });
+        }
+
+        const userId = req.user.id;
+
+        // 게시글 생성
+        const postId = await forumService.createPost(userId, subforumId, title, content);
+
+        // 생성된 게시글로 리다이렉트
+        res.redirect(`/forum/subforum/${subforumId}/post/${postId}`);
+    } catch (error) {
+        console.error('게시글 작성 오류:', error);
+        const subforumId = parseInt(req.params.subforumId);
+        const { title, content } = req.body;
+
+        try {
+            const subforum = await forumService.getSubforumById(subforumId);
+            res.render('pages/forum/new-post', {
+                title: `새 게시글 작성 - ${subforum?.name || ''}`,
+                subforum: subforum,
+                error: '게시글 작성 중 오류가 발생했습니다.',
+                formData: { title, content }
+            });
+        } catch (renderError) {
+            res.status(500).render('pages/error', {
+                title: '서버 오류',
+                error: {
+                    status: 500,
+                    message: '게시글 작성 중 오류가 발생했습니다.'
+                }
+            });
+        }
+    }
+});
+
+// 게시글 상세 보기
+router.get('/subforum/:subforumId/post/:postId', async (req, res) => {
+    try {
+        const postId = parseInt(req.params.postId);
+        const subforumId = parseInt(req.params.subforumId);
+
+        // 서브포럼 정보 조회
+        const subforum = await forumService.getSubforumById(subforumId);
+        if (!subforum) {
+            return res.status(404).render('pages/error', {
+                title: '서브포럼을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 서브포럼을 찾을 수 없습니다.'
+                }
+            });
+        }
+
+        // 게시글 조회
+        const post = await forumService.getPost(postId, subforumId);
+        if (!post) {
+            return res.status(404).render('pages/error', {
+                title: '게시글을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 게시글을 찾을 수 없습니다.'
+                }
+            });
+        }
+
+        // TODO: 댓글 목록 조회 (댓글 시스템 구현 후)
+        const comments = [];
 
         res.render('pages/forum/post', {
             title: post.title,
+            subforum: subforum,
             post: post,
-            comments: comments
+            comments: comments,
+            user: req.user || null
         });
     } catch (error) {
         console.error('게시글 페이지 오류:', error);
@@ -84,23 +220,71 @@ router.get('/post/:id', async (req, res) => {
     }
 });
 
-// 게시글 작성 페이지 (로그인 필요)
-router.get('/post/new/:subforumId', (req, res) => {
-    if (!req.session.user) {
+// 게시글 수정 페이지 (작성자만)
+router.get('/subforum/:subforumId/post/:postId/edit', async (req, res) => {
+    if (!req.user) {
         return res.redirect('/auth/login');
     }
 
-    const subforumId = parseInt(req.params.subforumId);
+    try {
+        const postId = parseInt(req.params.postId);
+        const subforumId = parseInt(req.params.subforumId);
 
-    res.render('pages/forum/new-post', {
-        title: '새 게시글 작성',
-        subforumId: subforumId,
-        error: null
-    });
+        // 서브포럼 정보 조회
+        const subforum = await forumService.getSubforumById(subforumId);
+        if (!subforum) {
+            return res.status(404).render('pages/error', {
+                title: '서브포럼을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 서브포럼을 찾을 수 없습니다.'
+                }
+            });
+        }
+
+        // 게시글 조회 (조회수 증가 안함)
+        const post = await forumService.getPost(postId, subforumId, false);
+        if (!post) {
+            return res.status(404).render('pages/error', {
+                title: '게시글을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 게시글을 찾을 수 없습니다.'
+                }
+            });
+        }
+
+        // 작성자 권한 확인
+        if (post.user_id !== req.user.id) {
+            return res.status(403).render('pages/error', {
+                title: '권한이 없습니다',
+                error: {
+                    status: 403,
+                    message: '게시글 수정 권한이 없습니다.'
+                }
+            });
+        }
+
+        res.render('pages/forum/edit-post', {
+            title: `게시글 수정 - ${post.title}`,
+            subforum: subforum,
+            post: post,
+            error: null
+        });
+    } catch (error) {
+        console.error('게시글 수정 페이지 오류:', error);
+        res.status(500).render('pages/error', {
+            title: '서버 오류',
+            error: {
+                status: 500,
+                message: '페이지를 로드하는 중 오류가 발생했습니다.'
+            }
+        });
+    }
 });
 
-// 게시글 작성 처리
-router.post('/post/new/:subforumId', [
+// 게시글 수정 처리
+router.post('/subforum/:subforumId/post/:postId/edit', [
     body('title')
         .isLength({ min: 1, max: 200 })
         .withMessage('제목은 1-200자 사이여야 합니다'),
@@ -108,48 +292,116 @@ router.post('/post/new/:subforumId', [
         .isLength({ min: 1 })
         .withMessage('내용을 입력해주세요')
 ], async (req, res) => {
-    if (!req.session.user) {
+    if (!req.user) {
         return res.redirect('/auth/login');
     }
 
     try {
         const errors = validationResult(req);
+        const postId = parseInt(req.params.postId);
         const subforumId = parseInt(req.params.subforumId);
+        const { title, content } = req.body;
+
+        // 서브포럼 정보 조회
+        const subforum = await forumService.getSubforumById(subforumId);
+        if (!subforum) {
+            return res.status(404).render('pages/error', {
+                title: '서브포럼을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 서브포럼을 찾을 수 없습니다.'
+                }
+            });
+        }
+
+        // 게시글 조회 (조회수 증가 안함)
+        const post = await forumService.getPost(postId, subforumId, false);
+        if (!post) {
+            return res.status(404).render('pages/error', {
+                title: '게시글을 찾을 수 없습니다',
+                error: {
+                    status: 404,
+                    message: '요청하신 게시글을 찾을 수 없습니다.'
+                }
+            });
+        }
 
         if (!errors.isEmpty()) {
-            return res.render('pages/forum/new-post', {
-                title: '새 게시글 작성',
-                subforumId: subforumId,
+            return res.render('pages/forum/edit-post', {
+                title: `게시글 수정 - ${post.title}`,
+                subforum: subforum,
+                post: { ...post, title, content },
                 error: errors.array()[0].msg
             });
         }
 
-        const { title, content } = req.body;
-        const userId = req.session.user.id;
+        const userId = req.user.id;
 
-        // TODO: ForumService에서 게시글 생성
-        // const postId = await forumService.createPost(userId, subforumId, title, content);
+        // 게시글 수정
+        await forumService.updatePost(postId, subforumId, userId, title, content);
 
-        // 임시로 서브포럼 페이지로 리다이렉트
-        res.redirect(`/forum/subforum/${subforumId}`);
+        // 수정된 게시글로 리다이렉트
+        res.redirect(`/forum/subforum/${subforumId}/post/${postId}`);
     } catch (error) {
-        console.error('게시글 작성 오류:', error);
-        const subforumId = parseInt(req.params.subforumId);
-        res.render('pages/forum/new-post', {
-            title: '새 게시글 작성',
-            subforumId: subforumId,
-            error: '게시글 작성 중 오류가 발생했습니다.'
-        });
+        console.error('게시글 수정 오류:', error);
+
+        try {
+            const postId = parseInt(req.params.postId);
+            const subforumId = parseInt(req.params.subforumId);
+            const { title, content } = req.body;
+
+            const subforum = await forumService.getSubforumById(subforumId);
+            const post = await forumService.getPost(postId, subforumId, false);
+
+            res.render('pages/forum/edit-post', {
+                title: `게시글 수정 - ${post?.title || ''}`,
+                subforum: subforum,
+                post: { ...post, title, content },
+                error: error.message || '게시글 수정 중 오류가 발생했습니다.'
+            });
+        } catch (renderError) {
+            res.status(500).render('pages/error', {
+                title: '서버 오류',
+                error: {
+                    status: 500,
+                    message: '게시글 수정 중 오류가 발생했습니다.'
+                }
+            });
+        }
     }
 });
 
-// 댓글 작성 처리
-router.post('/comment/:postId', [
+// 게시글 삭제 처리
+router.post('/subforum/:subforumId/post/:postId/delete', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    try {
+        const postId = parseInt(req.params.postId);
+        const subforumId = parseInt(req.params.subforumId);
+        const userId = req.user.id;
+
+        // 모더레이터 권한 확인 (AuthService에서 확인)
+        const isModerator = req.user.role === 'moderator' || req.user.role === 'super_admin';
+
+        // 게시글 삭제
+        await forumService.deletePost(postId, subforumId, userId, isModerator);
+
+        res.json({ success: true, message: '게시글이 삭제되었습니다.' });
+    } catch (error) {
+        console.error('게시글 삭제 오류:', error);
+        res.status(500).json({ error: error.message || '게시글 삭제 중 오류가 발생했습니다.' });
+    }
+});
+
+// 댓글 작성 처리 (댓글 시스템 구현 후 활성화)
+router.post('/subforum/:subforumId/post/:postId/comment', [
     body('content')
         .isLength({ min: 1 })
         .withMessage('댓글 내용을 입력해주세요')
 ], async (req, res) => {
-    if (!req.session.user) {
+    if (!req.user) {
         return res.status(401).json({ error: '로그인이 필요합니다.' });
     }
 
@@ -160,11 +412,13 @@ router.post('/comment/:postId', [
         }
 
         const postId = parseInt(req.params.postId);
+        const subforumId = parseInt(req.params.subforumId);
         const { content } = req.body;
-        const userId = req.session.user.id;
+        const userId = req.user.id;
 
-        // TODO: ForumService에서 댓글 생성
-        // const comment = await forumService.createComment(userId, postId, content);
+        // TODO: ForumService에서 댓글 생성 (댓글 시스템 구현 후)
+        // const comment = await forumService.createComment(userId, postId, subforumId, content);
+        // await forumService.updatePostLastCommentTime(postId, subforumId);
 
         res.json({ success: true, message: '댓글이 작성되었습니다.' });
     } catch (error) {

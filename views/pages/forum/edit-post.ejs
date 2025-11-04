@@ -1,0 +1,97 @@
+<%- include('../../layouts/main', {
+    title: title,
+    body: `
+        <main class="container">
+            <nav aria-label="breadcrumb">
+                <ul>
+                    <li><a href="/">홈</a></li>
+                    <li><a href="/forum/subforum/${subforum.id}">${subforum.name}</a></li>
+                    <li><a href="/forum/subforum/${subforum.id}/post/${post.id}">${post.title}</a></li>
+                    <li>수정</li>
+                </ul>
+            </nav>
+
+            <article>
+                <header>
+                    <h1>게시글 수정</h1>
+                    <p>${subforum.name} 서브포럼의 게시글을 수정합니다.</p>
+                </header>
+
+                ${error ? `
+                <div class="alert alert-error" role="alert">
+                    ${error}
+                </div>
+                ` : ''}
+
+                <form method="POST" action="/forum/subforum/${subforum.id}/post/${post.id}/edit">
+                    <div class="grid">
+                        <label for="title">
+                            제목 *
+                            <input
+                                type="text"
+                                id="title"
+                                name="title"
+                                placeholder="게시글 제목을 입력하세요"
+                                value="${post.title}"
+                                maxlength="200"
+                                required
+                            >
+                            <small>최대 200자까지 입력 가능합니다.</small>
+                        </label>
+                    </div>
+
+                    <div class="grid">
+                        <label for="content">
+                            내용 *
+                            <textarea
+                                id="content"
+                                name="content"
+                                placeholder="게시글 내용을 입력하세요"
+                                rows="15"
+                                required
+                            >${post.content}</textarea>
+                            <small>마크다운 문법을 사용할 수 있습니다.</small>
+                        </label>
+                    </div>
+
+                    <div class="grid">
+                        <div></div>
+                        <div>
+                            <button type="submit" class="contrast">수정 완료</button>
+                            <a href="/forum/subforum/${subforum.id}/post/${post.id}" role="button" class="secondary outline">취소</a>
+                        </div>
+                    </div>
+                </form>
+            </article>
+        </main>
+
+        <style>
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+        }
+
+        .alert-error {
+            background-color: var(--pico-del-background-color);
+            color: var(--pico-del-color);
+            border: 1px solid var(--pico-del-color);
+        }
+
+        textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+
+        .grid > div:last-child {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .grid > div:last-child a[role="button"] {
+            margin: 0;
+        }
+        </style>
+    `
+}) %>
