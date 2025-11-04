@@ -1,0 +1,367 @@
+<%- include('../../layouts/main', {
+    title: title,
+    body: `
+        <main class="container">
+            <header>
+                <nav aria-label="breadcrumb">
+                    <ol>
+                        <li><a href="/admin">관리자</a></li>
+                        <li><a href="/admin/forums">서브포럼 관리</a></li>
+                        <li>서브포럼 수정</li>
+                    </ol>
+                </nav>
+
+                <h1>서브포럼 수정</h1>
+                <p class="subtitle">서브포럼 ID: ${subforum.id}</p>
+            </header>
+
+            <!-- 오류 메시지 -->
+            ${error ?
+                '<div class="alert error">' + error + '</div>' : ''
+            }
+
+            <section class="forum-form">
+                <form method="POST" action="/admin/forums/${subforum.id}/edit">
+                    <div class="form-group">
+                        <label for="name">
+                            서브포럼 이름 <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            value="${subforum.name || ''}"
+                            placeholder="예: 자유게시판, 질문과 답변"
+                            required
+                            maxlength="100"
+                        >
+                        <small>최대 100자까지 입력 가능합니다.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">서브포럼 설명</label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="3"
+                            placeholder="서브포럼에 대한 간단한 설명을 입력하세요"
+                            maxlength="500"
+                        >${subforum.description || ''}</textarea>
+                        <small>최대 500자까지 입력 가능합니다.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="displayOrder">표시 순서</label>
+                        <input
+                            type="number"
+                            id="displayOrder"
+                            name="displayOrder"
+                            value="${subforum.display_order || 0}"
+                            min="0"
+                            step="1"
+                        >
+                        <small>숫자가 작을수록 위에 표시됩니다.</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="primary">수정 완료</button>
+                        <a href="/admin/forums" role="button" class="secondary">취소</a>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 서브포럼 정보 -->
+            <aside class="forum-info">
+                <h3>서브포럼 정보</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>생성일:</label>
+                        <span>${new Date(subforum.created_at).toLocaleString('ko-KR')}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>수정일:</label>
+                        <span>${subforum.updated_at ? new Date(subforum.updated_at).toLocaleString('ko-KR') : '없음'}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>게시글 수:</label>
+                        <span>${subforum.post_count || 0}개</span>
+                    </div>
+                    <div class="info-item">
+                        <label>댓글 수:</label>
+                        <span>${subforum.comment_count || 0}개</span>
+                    </div>
+                    <div class="info-item">
+                        <label>상태:</label>
+                        <span class="status-badge ${subforum.is_active ? 'active' : 'inactive'}">
+                            ${subforum.is_active ? '활성' : '비활성'}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="info-actions">
+                    <a href="/forum/subforum/${subforum.id}"
+                       target="_blank"
+                       role="button"
+                       class="secondary">
+                        포럼 보기
+                    </a>
+
+                    ${subforum.post_count === 0 ? `
+                        <button onclick="deleteSubforum()"
+                                class="danger">
+                            서브포럼 삭제
+                        </button>
+                    ` : `
+                        <button disabled
+                                class="danger"
+                                title="게시글이 있어 삭제할 수 없습니다">
+                            서브포럼 삭제
+                        </button>
+                    `}
+                </div>
+            </aside>
+        </main>
+
+        <style>
+            .subtitle {
+                color: var(--pico-muted-color);
+                font-size: 0.9rem;
+                margin-top: -0.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .alert {
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+                border-radius: var(--pico-border-radius);
+                border: 1px solid;
+            }
+
+            .alert.error {
+                background: var(--pico-del-background-color);
+                border-color: var(--pico-del-color);
+                color: var(--pico-del-color);
+            }
+
+            .forum-form {
+                background: var(--pico-card-background-color);
+                padding: 2rem;
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+                margin-bottom: 2rem;
+            }
+
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            .form-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: bold;
+                color: var(--pico-color);
+            }
+
+            .required {
+                color: var(--pico-del-color);
+            }
+
+            .form-group input,
+            .form-group textarea {
+                width: 100%;
+                margin-bottom: 0.25rem;
+            }
+
+            .form-group small {
+                display: block;
+                color: var(--pico-muted-color);
+                font-size: 0.85rem;
+                margin-top: 0.25rem;
+            }
+
+            .form-actions {
+                display: flex;
+                gap: 1rem;
+                margin-top: 2rem;
+            }
+
+            .form-actions button,
+            .form-actions a[role="button"] {
+                flex: 1;
+                text-align: center;
+            }
+
+            .forum-info {
+                background: var(--pico-secondary-background);
+                padding: 1.5rem;
+                border-radius: var(--pico-border-radius);
+                border-left: 4px solid var(--pico-primary);
+            }
+
+            .forum-info h3 {
+                margin-top: 0;
+                color: var(--pico-primary);
+            }
+
+            .info-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .info-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem;
+                background: var(--pico-card-background-color);
+                border-radius: var(--pico-border-radius);
+            }
+
+            .info-item label {
+                font-weight: bold;
+                color: var(--pico-muted-color);
+                margin: 0;
+            }
+
+            .status-badge {
+                display: inline-block;
+                padding: 0.2rem 0.5rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+
+            .status-badge.active {
+                background: var(--pico-ins-background-color);
+                color: var(--pico-ins-color);
+            }
+
+            .status-badge.inactive {
+                background: var(--pico-del-background-color);
+                color: var(--pico-del-color);
+            }
+
+            .info-actions {
+                display: flex;
+                gap: 1rem;
+            }
+
+            .info-actions button,
+            .info-actions a[role="button"] {
+                flex: 1;
+                text-align: center;
+            }
+
+            /* 반응형 디자인 */
+            @media (max-width: 768px) {
+                .forum-form {
+                    padding: 1rem;
+                }
+
+                .form-actions,
+                .info-actions {
+                    flex-direction: column;
+                }
+
+                .forum-info {
+                    padding: 1rem;
+                }
+
+                .info-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+
+        <script>
+            // 폼 검증
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.querySelector('form');
+                const nameInput = document.getElementById('name');
+                const descriptionInput = document.getElementById('description');
+
+                // 실시간 글자 수 체크
+                nameInput.addEventListener('input', function() {
+                    const length = this.value.length;
+                    const small = this.parentNode.querySelector('small');
+                    small.textContent = '최대 100자까지 입력 가능합니다. (' + length + '/100)';
+
+                    if (length > 100) {
+                        this.style.borderColor = 'var(--pico-del-color)';
+                    } else {
+                        this.style.borderColor = '';
+                    }
+                });
+
+                descriptionInput.addEventListener('input', function() {
+                    const length = this.value.length;
+                    const small = this.parentNode.querySelector('small');
+                    small.textContent = '최대 500자까지 입력 가능합니다. (' + length + '/500)';
+
+                    if (length > 500) {
+                        this.style.borderColor = 'var(--pico-del-color)';
+                    } else {
+                        this.style.borderColor = '';
+                    }
+                });
+
+                // 폼 제출 시 검증
+                form.addEventListener('submit', function(e) {
+                    const name = nameInput.value.trim();
+
+                    if (!name) {
+                        e.preventDefault();
+                        alert('서브포럼 이름을 입력해주세요.');
+                        nameInput.focus();
+                        return;
+                    }
+
+                    if (name.length > 100) {
+                        e.preventDefault();
+                        alert('서브포럼 이름은 100자를 초과할 수 없습니다.');
+                        nameInput.focus();
+                        return;
+                    }
+
+                    if (descriptionInput.value.length > 500) {
+                        e.preventDefault();
+                        alert('설명은 500자를 초과할 수 없습니다.');
+                        descriptionInput.focus();
+                        return;
+                    }
+                });
+            });
+
+            // 서브포럼 삭제 함수
+            async function deleteSubforum() {
+                if (!confirm('정말로 이 서브포럼을 삭제하시겠습니까?\\n\\n이 작업은 되돌릴 수 없습니다.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/admin/forums/${subforum.id}/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(result.message);
+                        window.location.href = '/admin/forums';
+                    } else {
+                        alert('오류: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('서브포럼 삭제 오류:', error);
+                    alert('서브포럼 삭제 중 오류가 발생했습니다.');
+                }
+            }
+        </script>
+    `
+}) %>

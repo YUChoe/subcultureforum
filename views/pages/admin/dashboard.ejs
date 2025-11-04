@@ -1,48 +1,264 @@
-<%- include('../../layouts/header', { title: title }) %>
-
-<main class="container">
-    <h1>관리자 대시보드</h1>
-
-    <div class="grid">
-        <article>
+<%- include('../../layouts/main', {
+    title: title,
+    body: `
+        <main class="container">
             <header>
-                <h3>사이트 통계</h3>
+                <h1>관리자 대시보드</h1>
+                <p class="subtitle">포럼 사이트 전체 관리</p>
             </header>
-            <div class="grid">
-                <div>
-                    <h4>총 사용자 수</h4>
-                    <p><%= statistics.totalUsers %></p>
-                </div>
-                <div>
-                    <h4>총 게시글 수</h4>
-                    <p><%= statistics.totalPosts %></p>
-                </div>
-                <div>
-                    <h4>총 카테고리 수</h4>
-                    <p><%= statistics.totalCategories %></p>
-                </div>
-                <div>
-                    <h4>활성 사용자 수</h4>
-                    <p><%= statistics.activeUsers %></p>
-                </div>
-            </div>
-        </article>
-    </div>
 
-    <div class="grid">
-        <article>
-            <header>
-                <h3>관리 메뉴</h3>
-            </header>
-            <nav>
-                <ul>
-                    <li><a href="/admin/categories">카테고리 관리</a></li>
-                    <li><a href="/admin/users">사용자 관리</a></li>
-                    <li><a href="/admin/categories/new">새 카테고리 생성</a></li>
-                </ul>
-            </nav>
-        </article>
-    </div>
-</main>
+            <!-- 사이트 통계 -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h3>${statistics.users.total}</h3>
+                        <p>총 사용자</p>
+                        <small>최근 7일: +${statistics.users.recent_signups}</small>
+                    </div>
+                </div>
 
-<%- include('../../layouts/footer') %>
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-content">
+                        <h3>${statistics.content.posts}</h3>
+                        <p>총 게시글</p>
+                        <small>카테고리당 평균: ${statistics.activity.posts_per_category}</small>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-content">
+                        <h3>${statistics.content.comments}</h3>
+                        <p>총 댓글</p>
+                        <small>게시글당 평균: ${statistics.activity.comments_per_post}</small>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-content">
+                        <h3>${statistics.content.categories}</h3>
+                        <p>활성 카테고리</p>
+                        <small>포럼 섹션</small>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 사용자 역할 분포 -->
+            <section class="user-roles">
+                <h2>사용자 역할 분포</h2>
+                <div class="roles-grid">
+                    <div class="role-item admin">
+                        <span class="role-count">${statistics.users.admins}</span>
+                        <span class="role-name">관리자</span>
+                    </div>
+                    <div class="role-item moderator">
+                        <span class="role-count">${statistics.users.moderators}</span>
+                        <span class="role-name">모더레이터</span>
+                    </div>
+                    <div class="role-item user">
+                        <span class="role-count">${statistics.users.regular_users}</span>
+                        <span class="role-name">일반 사용자</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 관리 메뉴 -->
+            <section class="admin-menu">
+                <h2>관리 메뉴</h2>
+                <div class="menu-grid">
+                    <a href="/admin/categories" class="menu-card">
+                        <div class="menu-icon">📁</div>
+                        <h3>카테고리 관리</h3>
+                        <p>포럼 카테고리 생성, 수정, 삭제</p>
+                    </a>
+
+                    <a href="/admin/users" class="menu-card">
+                        <div class="menu-icon">👥</div>
+                        <h3>사용자 관리</h3>
+                        <p>사용자 권한 및 계정 관리</p>
+                    </a>
+
+                    <a href="/admin/categories/new" class="menu-card">
+                        <div class="menu-icon">➕</div>
+                        <h3>새 카테고리</h3>
+                        <p>새로운 포럼 카테고리 생성</p>
+                    </a>
+
+                    <a href="/" class="menu-card secondary">
+                        <div class="menu-icon">🏠</div>
+                        <h3>포럼 보기</h3>
+                        <p>사용자 관점에서 포럼 확인</p>
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <style>
+            .subtitle {
+                color: var(--pico-muted-color);
+                margin-top: -0.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin-bottom: 2rem;
+            }
+
+            .stat-card {
+                background: var(--pico-card-background-color);
+                padding: 1.5rem;
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .stat-icon {
+                font-size: 2rem;
+                opacity: 0.8;
+            }
+
+            .stat-content h3 {
+                margin: 0;
+                font-size: 1.8rem;
+                color: var(--pico-primary);
+            }
+
+            .stat-content p {
+                margin: 0.25rem 0;
+                font-weight: bold;
+                color: var(--pico-color);
+            }
+
+            .stat-content small {
+                color: var(--pico-muted-color);
+                font-size: 0.8rem;
+            }
+
+            .user-roles {
+                margin-bottom: 2rem;
+            }
+
+            .user-roles h2 {
+                margin-bottom: 1rem;
+                color: var(--pico-color);
+            }
+
+            .roles-grid {
+                display: flex;
+                gap: 1rem;
+                justify-content: center;
+            }
+
+            .role-item {
+                background: var(--pico-card-background-color);
+                padding: 1rem;
+                border-radius: var(--pico-border-radius);
+                text-align: center;
+                min-width: 100px;
+                border-left: 4px solid;
+            }
+
+            .role-item.admin {
+                border-left-color: var(--pico-del-color);
+            }
+
+            .role-item.moderator {
+                border-left-color: var(--pico-ins-color);
+            }
+
+            .role-item.user {
+                border-left-color: var(--pico-primary);
+            }
+
+            .role-count {
+                display: block;
+                font-size: 1.5rem;
+                font-weight: bold;
+                color: var(--pico-primary);
+            }
+
+            .role-name {
+                font-size: 0.9rem;
+                color: var(--pico-muted-color);
+            }
+
+            .admin-menu h2 {
+                margin-bottom: 1rem;
+                color: var(--pico-color);
+            }
+
+            .menu-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 1rem;
+            }
+
+            .menu-card {
+                background: var(--pico-card-background-color);
+                padding: 1.5rem;
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+                text-decoration: none;
+                color: var(--pico-color);
+                transition: transform 0.2s, box-shadow 0.2s;
+                border: 1px solid var(--pico-muted-border-color);
+            }
+
+            .menu-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                color: var(--pico-color);
+            }
+
+            .menu-card.secondary {
+                border-color: var(--pico-secondary);
+            }
+
+            .menu-icon {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .menu-card h3 {
+                margin: 0.5rem 0;
+                color: var(--pico-primary);
+            }
+
+            .menu-card p {
+                margin: 0;
+                color: var(--pico-muted-color);
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+
+            /* 반응형 디자인 */
+            @media (max-width: 768px) {
+                .stats-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .roles-grid {
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                .menu-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .stat-card {
+                    flex-direction: column;
+                    text-align: center;
+                }
+            }
+        </style>
+    `
+}) %>

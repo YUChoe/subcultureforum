@@ -1,15 +1,27 @@
 const express = require('express');
+const ForumService = require('../services/ForumService');
 const router = express.Router();
 
-// 메인 페이지 - 포럼 카테고리 목록
+// ForumService 인스턴스 생성
+const forumService = new ForumService();
+
+// 메인 페이지 - 포럼 서브포럼 목록
 router.get('/', async (req, res) => {
     try {
-        // TODO: ForumService에서 카테고리 목록 가져오기
-        const categories = []; // 임시 빈 배열
+        // 서브포럼 목록 조회
+        const subforums = await forumService.getSubforums();
+
+        // 인기 게시글 조회 (전체 서브포럼에서 최근 7일간)
+        const popularPosts = await forumService.getPopularPosts(null, 5, 7);
+
+        // 최근 활동 게시글 조회
+        const recentActivityPosts = await forumService.getRecentActivityPosts(null, 5);
 
         res.render('pages/index', {
             title: '포럼 메인',
-            categories: categories
+            subforums: subforums,
+            popularPosts: popularPosts,
+            recentActivityPosts: recentActivityPosts
         });
     } catch (error) {
         console.error('메인 페이지 로드 오류:', error);
@@ -27,7 +39,7 @@ router.get('/', async (req, res) => {
 router.get('/search', async (req, res) => {
     try {
         const query = req.query.q || '';
-        const categoryId = req.query.category || null;
+        const subforumId = req.query.subforum || null;
 
         // TODO: ForumService에서 검색 결과 가져오기
         const searchResults = []; // 임시 빈 배열
@@ -35,7 +47,7 @@ router.get('/search', async (req, res) => {
         res.render('pages/search', {
             title: '검색 결과',
             query: query,
-            categoryId: categoryId,
+            subforumId: subforumId,
             results: searchResults
         });
     } catch (error) {

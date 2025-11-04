@@ -1,0 +1,266 @@
+<%- include('../../layouts/main', {
+    title: title,
+    body: `
+        <main class="container">
+            <header>
+                <nav aria-label="breadcrumb">
+                    <ol>
+                        <li><a href="/admin">관리자</a></li>
+                        <li><a href="/admin/forums">서브포럼 관리</a></li>
+                        <li>새 서브포럼 생성</li>
+                    </ol>
+                </nav>
+
+                <h1>새 서브포럼 생성</h1>
+            </header>
+
+            <!-- 오류 메시지 -->
+            ${error ?
+                '<div class="alert error">' + error + '</div>' : ''
+            }
+
+            <section class="forum-form">
+                <form method="POST" action="/admin/forums/new">
+                    <div class="form-group">
+                        <label for="name">
+                            서브포럼 이름 <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            value="${(typeof formData !== 'undefined' && formData.name) || ''}"
+                            placeholder="예: 자유게시판, 질문과 답변"
+                            required
+                            maxlength="100"
+                        >
+                        <small>최대 100자까지 입력 가능합니다.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">서브포럼 설명</label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="3"
+                            placeholder="서브포럼에 대한 간단한 설명을 입력하세요"
+                            maxlength="500"
+                        >${(typeof formData !== 'undefined' && formData.description) || ''}</textarea>
+                        <small>최대 500자까지 입력 가능합니다.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="displayOrder">표시 순서</label>
+                        <input
+                            type="number"
+                            id="displayOrder"
+                            name="displayOrder"
+                            value="${(typeof formData !== 'undefined' && formData.displayOrder) || '0'}"
+                            min="0"
+                            step="1"
+                        >
+                        <small>숫자가 작을수록 위에 표시됩니다. (기본값: 0)</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="primary">서브포럼 생성</button>
+                        <a href="/admin/forums" role="button" class="secondary">취소</a>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 도움말 -->
+            <aside class="help-section">
+                <h3>서브포럼 생성 가이드</h3>
+                <ul>
+                    <li><strong>서브포럼 이름:</strong> 사용자에게 표시될 포럼의 이름입니다.</li>
+                    <li><strong>설명:</strong> 해당 포럼의 목적이나 주제를 간단히 설명합니다.</li>
+                    <li><strong>표시 순서:</strong> 메인 페이지에서 서브포럼이 표시되는 순서를 결정합니다.</li>
+                    <li><strong>자동 생성:</strong> 서브포럼 생성 시 전용 데이터베이스가 자동으로 생성됩니다.</li>
+                </ul>
+
+                <div class="warning">
+                    <strong>주의사항:</strong>
+                    <p>서브포럼을 생성한 후에는 이름 변경이 가능하지만, 삭제는 해당 서브포럼에 게시글이 없을 때만 가능합니다.</p>
+                </div>
+            </aside>
+        </main>
+
+        <style>
+            .alert {
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+                border-radius: var(--pico-border-radius);
+                border: 1px solid;
+            }
+
+            .alert.error {
+                background: var(--pico-del-background-color);
+                border-color: var(--pico-del-color);
+                color: var(--pico-del-color);
+            }
+
+            .forum-form {
+                background: var(--pico-card-background-color);
+                padding: 2rem;
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+                margin-bottom: 2rem;
+            }
+
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            .form-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: bold;
+                color: var(--pico-color);
+            }
+
+            .required {
+                color: var(--pico-del-color);
+            }
+
+            .form-group input,
+            .form-group textarea {
+                width: 100%;
+                margin-bottom: 0.25rem;
+            }
+
+            .form-group small {
+                display: block;
+                color: var(--pico-muted-color);
+                font-size: 0.85rem;
+                margin-top: 0.25rem;
+            }
+
+            .form-actions {
+                display: flex;
+                gap: 1rem;
+                margin-top: 2rem;
+            }
+
+            .form-actions button,
+            .form-actions a[role="button"] {
+                flex: 1;
+                text-align: center;
+            }
+
+            .help-section {
+                background: var(--pico-secondary-background);
+                padding: 1.5rem;
+                border-radius: var(--pico-border-radius);
+                border-left: 4px solid var(--pico-primary);
+            }
+
+            .help-section h3 {
+                margin-top: 0;
+                color: var(--pico-primary);
+            }
+
+            .help-section ul {
+                margin-bottom: 1rem;
+            }
+
+            .help-section li {
+                margin-bottom: 0.5rem;
+                line-height: 1.4;
+            }
+
+            .warning {
+                background: var(--pico-mark-background-color);
+                padding: 1rem;
+                border-radius: var(--pico-border-radius);
+                border-left: 4px solid var(--pico-mark-color);
+                margin-top: 1rem;
+            }
+
+            .warning strong {
+                color: var(--pico-mark-color);
+            }
+
+            .warning p {
+                margin: 0.5rem 0 0 0;
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+
+            /* 반응형 디자인 */
+            @media (max-width: 768px) {
+                .forum-form {
+                    padding: 1rem;
+                }
+
+                .form-actions {
+                    flex-direction: column;
+                }
+
+                .help-section {
+                    padding: 1rem;
+                }
+            }
+        </style>
+
+        <script>
+            // 폼 검증
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.querySelector('form');
+                const nameInput = document.getElementById('name');
+                const descriptionInput = document.getElementById('description');
+
+                // 실시간 글자 수 체크
+                nameInput.addEventListener('input', function() {
+                    const length = this.value.length;
+                    const small = this.parentNode.querySelector('small');
+                    small.textContent = '최대 100자까지 입력 가능합니다. (' + length + '/100)';
+
+                    if (length > 100) {
+                        this.style.borderColor = 'var(--pico-del-color)';
+                    } else {
+                        this.style.borderColor = '';
+                    }
+                });
+
+                descriptionInput.addEventListener('input', function() {
+                    const length = this.value.length;
+                    const small = this.parentNode.querySelector('small');
+                    small.textContent = '최대 500자까지 입력 가능합니다. (' + length + '/500)';
+
+                    if (length > 500) {
+                        this.style.borderColor = 'var(--pico-del-color)';
+                    } else {
+                        this.style.borderColor = '';
+                    }
+                });
+
+                // 폼 제출 시 검증
+                form.addEventListener('submit', function(e) {
+                    const name = nameInput.value.trim();
+
+                    if (!name) {
+                        e.preventDefault();
+                        alert('서브포럼 이름을 입력해주세요.');
+                        nameInput.focus();
+                        return;
+                    }
+
+                    if (name.length > 100) {
+                        e.preventDefault();
+                        alert('서브포럼 이름은 100자를 초과할 수 없습니다.');
+                        nameInput.focus();
+                        return;
+                    }
+
+                    if (descriptionInput.value.length > 500) {
+                        e.preventDefault();
+                        alert('설명은 500자를 초과할 수 없습니다.');
+                        descriptionInput.focus();
+                        return;
+                    }
+                });
+            });
+        </script>
+    `
+}) %>

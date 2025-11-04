@@ -349,16 +349,16 @@ const checkRoutePermission = (req, res, next) => {
         '/auth/login',
         '/auth/register',
         '/auth/logout',
-        '/category',
+        '/forum/category',
         '/search'
     ];
 
     // 서브포럼 및 게시글 조회는 공개
     const publicViewPatterns = [
-        /^\/category\/\d+$/, // 카테고리 목록 조회
-        /^\/category\/\d+\/post\/\d+$/, // 게시글 조회 (서브포럼/게시글)
-        /^\/category\/\d+\/posts$/, // 카테고리 내 게시글 목록
-        /^\/category\/\d+\/posts\/page\/\d+$/ // 페이지네이션
+        /^\/forum\/category\/\d+$/, // 카테고리 목록 조회
+        /^\/forum\/category\/\d+\/post\/\d+$/, // 게시글 조회 (서브포럼/게시글)
+        /^\/forum\/category\/\d+\/posts$/, // 카테고리 내 게시글 목록
+        /^\/forum\/category\/\d+\/posts\/page\/\d+$/ // 페이지네이션
     ];
 
     // 공개 조회 패턴 확인
