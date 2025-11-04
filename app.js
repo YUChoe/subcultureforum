@@ -44,10 +44,13 @@ async function initializeApp() {
             }
         }));
 
+        // 사용자 인증 미들웨어
+        const { loadUser } = require('./middleware/auth');
+        app.use(loadUser);
+
         // 전역 변수 설정 (템플릿에서 사용)
         app.use((req, res, next) => {
-            res.locals.user = req.session.user || null;
-            res.locals.isLoggedIn = !!req.session.user;
+            res.locals.isLoggedIn = !!req.user;
             next();
         });
 
