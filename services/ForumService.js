@@ -1,4 +1,5 @@
 const DatabaseManagerSingleton = require('./DatabaseManager');
+const { renderMarkdown, extractPlainText } = require('../utils/markdown');
 
 class ForumService {
     constructor() {
@@ -284,7 +285,7 @@ class ForumService {
             // 게시글 내용 미리보기 생성
             const postsWithPreview = postsWithUserInfo.map(post => ({
                 ...post,
-                content_preview: this.generateContentPreview(post.content, 150),
+                content_preview: extractPlainText(post.content, 150),
                 is_recent: this.isRecentPost(post.created_at),
                 has_recent_comments: this.hasRecentComments(post.last_comment_at)
             }));
@@ -605,11 +606,16 @@ class ForumService {
                 [postId]
             );
 
+            // 첨부파일 목록 조회
+            const attachments = await this.getAttachments(postId, subforumId);
+
             return {
                 ...post,
                 username: user?.username || '알 수 없음',
                 role: user?.role || 'user',
-                comment_count: commentCountResult?.count || 0
+                comment_count: commentCountResult?.count || 0,
+                content_html: renderMarkdown(post.content),
+                attachments: attachments
             };
         } catch (error) {
             console.error('게시글 조회 실패:', error);
@@ -860,6 +866,136 @@ class ForumService {
         } catch (error) {
             console.error('사용자 게시글 목록 조회 실패:', error);
             throw error;
+        }
+    }
+    /**
+     * 첨부파일 저장
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {Object} file - 업로드된 파일 객체
+     * @returns {Promise<number>} 첨부파일 ID
+     */
+    async saveAttachment(postId, subforumId, file) {
+        if (!postId || !subforumId || !file) {
+            throw new Error('필수 정보가 누락되었습니다.');
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            // 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
+            const timestamp = Date.now();
+            const uniqueFilename = `${timestamp}_${file.originalname}`;
+
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                `INSERT INTO attachments (post_id, filename, original_filename, mime_type, file_size, file_data, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+                [
+                    postId,
+                    uniqueFilename,
+                    file.originalname,
+                    file.mimetype,
+                    file.size,
+                    file.buffer
+                ]
+            );
+
+            if (!result.id) {
+                throw new Error('첨부파일 저장에 실패했습니다.');
+            }
+
+            console.log(`첨부파일 저장 완료: ID ${result.id}, 게시글 ${postId}`);
+            return result.id;
+        } catch (error) {
+            console.error('첨부파일 저장 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 게시글의 첨부파일 목록 조회
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @returns {Promise<Array>} 첨부파일 목록
+     */
+    async getAttachments(postId, subforumId) {
+        if (!postId || !subforumId) {
+            return [];
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            const attachments = await this.dbManager.allQuery(
+                forumDB,
+                `SELECT id, filename, original_filename, mime_type, file_size, created_at
+                 FROM attachments
+                 WHERE post_id = ?
+                 ORDER BY created_at ASC`,
+                [postId]
+            );
+
+            return attachments;
+        } catch (error) {
+            console.error('첨부파일 목록 조회 실패:', error);
+            return [];
+        }
+    }
+
+    /**
+     * 첨부파일 데이터 조회
+     * @param {number} attachmentId - 첨부파일 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @returns {Promise<Object|null>} 첨부파일 데이터
+     */
+    async getAttachmentData(attachmentId, subforumId) {
+        if (!attachmentId || !subforumId) {
+            return null;
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            const attachment = await this.dbManager.getQuery(
+                forumDB,
+                `SELECT id, filename, original_filename, mime_type, file_size, file_data, created_at
+                 FROM attachments
+                 WHERE id = ?`,
+                [attachmentId]
+            );
+
+            return attachment;
+        } catch (error) {
+            console.error('첨부파일 데이터 조회 실패:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 첨부파일 삭제
+     * @param {number} attachmentId - 첨부파일 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @returns {Promise<boolean>} 삭제 성공 여부
+     */
+    async deleteAttachment(attachmentId, subforumId) {
+        if (!attachmentId || !subforumId) {
+            return false;
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                'DELETE FROM attachments WHERE id = ?',
+                [attachmentId]
+            );
+
+            return result.changes > 0;
+        } catch (error) {
+            console.error('첨부파일 삭제 실패:', error);
+            return false;
         }
     }
 }

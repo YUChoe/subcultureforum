@@ -13,16 +13,25 @@
     "db:init-forum": "node database/init_forum_schema.js",
     "db:create-category": "node database/init_forum_schema.js create"
   },
-  "keywords": ["forum", "community", "nodejs", "sqlite"],
+  "keywords": [
+    "forum",
+    "community",
+    "nodejs",
+    "sqlite"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "dompurify": "^3.3.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "express-validator": "^7.3.0",
+    "jsdom": "^27.1.0",
+    "marked": "^16.4.1",
+    "multer": "^2.0.2",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {

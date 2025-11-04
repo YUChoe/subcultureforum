@@ -33,7 +33,31 @@
                 </header>
 
                 <div class="post-body">
-                    <p>${post.content.replace(/\\n/g, '<br>')}</p>
+                    <div class="markdown-content">
+                        ${post.content_html || post.content.replace(/\\n/g, '<br>')}
+                    </div>
+
+                    ${post.attachments && post.attachments.length > 0 ? `
+                    <div class="attachments">
+                        <h4>첨부 이미지</h4>
+                        <div class="attachment-grid">
+                            ${post.attachments.map(attachment => `
+                                <div class="attachment-item">
+                                    <img
+                                        src="/forum/subforum/${subforum.id}/attachment/${attachment.id}"
+                                        alt="${attachment.original_filename}"
+                                        title="${attachment.original_filename}"
+                                        loading="lazy"
+                                    >
+                                    <div class="attachment-info">
+                                        <small>${attachment.original_filename}</small>
+                                        <small>${Math.round(attachment.file_size / 1024)}KB</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
 
                 ${user && user.id === post.user_id ? `
@@ -222,6 +246,83 @@
         .no-comments {
             text-align: center;
             padding: 2rem;
+            color: var(--pico-muted-color);
+        }
+
+        .markdown-content {
+            line-height: 1.6;
+        }
+
+        .markdown-content h1, .markdown-content h2, .markdown-content h3,
+        .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .markdown-content pre {
+            background-color: var(--pico-card-background-color);
+            padding: 1rem;
+            border-radius: 0.25rem;
+            overflow-x: auto;
+        }
+
+        .markdown-content code {
+            background-color: var(--pico-card-background-color);
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.125rem;
+            font-size: 0.875em;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid var(--pico-primary);
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: var(--pico-muted-color);
+        }
+
+        .attachments {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--pico-muted-border-color);
+        }
+
+        .attachments h4 {
+            margin-bottom: 1rem;
+            color: var(--pico-color);
+        }
+
+        .attachment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .attachment-item {
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background-color: var(--pico-card-background-color);
+        }
+
+        .attachment-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .attachment-item img:hover {
+            transform: scale(1.05);
+        }
+
+        .attachment-info {
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .attachment-info small {
+            display: block;
             color: var(--pico-muted-color);
         }
 

@@ -22,7 +22,7 @@
                 </div>
                 ` : ''}
 
-                <form method="POST" action="/forum/subforum/${subforum.id}/post/new">
+                <form method="POST" action="/forum/subforum/${subforum.id}/post/new" enctype="multipart/form-data">
                     <div class="grid">
                         <label for="title">
                             제목 *
@@ -49,7 +49,22 @@
                                 rows="15"
                                 required
                             >${formData.content || ''}</textarea>
-                            <small>마크다운 문법을 사용할 수 있습니다.</small>
+                            <small>마크다운 문법을 사용할 수 있습니다. **굵게**, *기울임*, \`코드\`, [링크](URL) 등</small>
+                        </label>
+                    </div>
+
+                    <div class="grid">
+                        <label for="attachments">
+                            이미지 첨부 (선택사항)
+                            <input
+                                type="file"
+                                id="attachments"
+                                name="attachments"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                multiple
+                            >
+                            <small>이미지 파일만 업로드 가능합니다. 최대 5개, 각 파일당 5MB 제한</small>
+                            <div id="file-preview" class="file-preview"></div>
                         </label>
                     </div>
 
@@ -91,6 +106,158 @@
         .grid > div:last-child a[role="button"] {
             margin: 0;
         }
+
+        .file-preview {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .file-preview-item {
+            position: relative;
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: 0.25rem;
+            overflow: hidden;
+            background-color: var(--pico-card-background-color);
+        }
+
+        .file-preview-item img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+        }
+
+        .file-preview-item .file-info {
+            padding: 0.25rem;
+            font-size: 0.75rem;
+            text-align: center;
+            color: var(--pico-muted-color);
+        }
+
+        .file-preview-item .remove-file {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-preview-item .remove-file:hover {
+            background: rgba(255, 0, 0, 1);
+        }
+
+        /* 파일 입력 필드 스타일링 개선 */
+        input[type="file"] {
+            padding: 0.5rem;
+            border: 2px dashed var(--pico-muted-border-color);
+            border-radius: 0.25rem;
+            background-color: var(--pico-card-background-color);
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        input[type="file"]:hover {
+            border-color: var(--pico-primary);
+        }
+
+        input[type="file"]:focus {
+            border-color: var(--pico-primary);
+            outline: none;
+        }
         </style>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('attachments');
+            const filePreview = document.getElementById('file-preview');
+            let selectedFiles = [];
+
+            fileInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+
+                // 파일 개수 제한 확인
+                if (files.length > 5) {
+                    alert('최대 5개의 파일만 선택할 수 있습니다.');
+                    return;
+                }
+
+                selectedFiles = files;
+                updatePreview();
+            });
+
+            function updatePreview() {
+                filePreview.innerHTML = '';
+
+                selectedFiles.forEach((file, index) => {
+                    // 파일 크기 확인
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert(\`파일 "\${file.name}"이 5MB를 초과합니다.\`);
+                        return;
+                    }
+
+                    // 파일 타입 확인
+                    if (!file.type.startsWith('image/')) {
+                        alert(\`파일 "\${file.name}"은 이미지 파일이 아닙니다.\`);
+                        return;
+                    }
+
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'file-preview-item';
+
+                    const img = document.createElement('img');
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+
+                    const fileInfo = document.createElement('div');
+                    fileInfo.className = 'file-info';
+                    fileInfo.textContent = \`\${file.name} (\${Math.round(file.size / 1024)}KB)\`;
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-file';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.type = 'button';
+                    removeBtn.onclick = function() {
+                        removeFile(index);
+                    };
+
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(fileInfo);
+                    previewItem.appendChild(removeBtn);
+                    filePreview.appendChild(previewItem);
+                });
+
+                // 파일 입력 필드 업데이트
+                updateFileInput();
+            }
+
+            function removeFile(index) {
+                selectedFiles.splice(index, 1);
+                updatePreview();
+            }
+
+            function updateFileInput() {
+                // DataTransfer 객체를 사용하여 파일 입력 필드 업데이트
+                const dt = new DataTransfer();
+                selectedFiles.forEach(file => {
+                    dt.items.add(file);
+                });
+                fileInput.files = dt.files;
+            }
+        });
+        </script>
     `
 }) %>

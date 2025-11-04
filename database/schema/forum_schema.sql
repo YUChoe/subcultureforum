@@ -26,6 +26,19 @@ CREATE TABLE IF NOT EXISTS comments (
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
+-- 첨부파일 테이블
+CREATE TABLE IF NOT EXISTS attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size INTEGER NOT NULL,
+    file_data BLOB NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);
+
 -- FTS5 전문 검색 인덱스
 CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
     title, content, content='posts', content_rowid='id'
@@ -41,6 +54,10 @@ CREATE INDEX IF NOT EXISTS idx_posts_last_comment_at ON posts(last_comment_at DE
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at);
+
+-- 첨부파일 인덱스 (성능 최적화)
+CREATE INDEX IF NOT EXISTS idx_attachments_post_id ON attachments(post_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_filename ON attachments(filename);
 
 -- FTS5 동기화 트리거들
 -- 게시글 삽입 시 검색 인덱스 업데이트
