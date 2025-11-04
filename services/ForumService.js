@@ -869,6 +869,224 @@ class ForumService {
         }
     }
     /**
+     * 댓글 작성
+     * @param {number} userId - 작성자 ID
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {string} content - 댓글 내용
+     * @returns {Promise<number>} 생성된 댓글 ID
+     */
+    async createComment(userId, postId, subforumId, content) {
+        if (!userId || !postId || !subforumId || !content) {
+            throw new Error('필수 정보가 누락되었습니다.');
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            // 게시글 존재 확인
+            const post = await this.dbManager.getQuery(
+                forumDB,
+                'SELECT id FROM posts WHERE id = ? AND category_id = ?',
+                [postId, subforumId]
+            );
+
+            if (!post) {
+                throw new Error('게시글을 찾을 수 없습니다.');
+            }
+
+            // 댓글 생성
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                `INSERT INTO comments (post_id, user_id, content, created_at, updated_at)
+                 VALUES (?, ?, ?, datetime('now'), datetime('now'))`,
+                [postId, userId, content]
+            );
+
+            if (!result.id) {
+                throw new Error('댓글 작성에 실패했습니다.');
+            }
+
+            console.log(`댓글 생성 완료: ID ${result.id}, 게시글 ${postId}`);
+            return result.id;
+        } catch (error) {
+            console.error('댓글 작성 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 게시글의 댓글 목록 조회
+     * @param {number} postId - 게시글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {Object} options - 조회 옵션
+     * @returns {Promise<Array>} 댓글 목록
+     */
+    async getComments(postId, subforumId, options = {}) {
+        const { page = 1, limit = 50 } = options;
+
+        if (!postId || !subforumId) {
+            return [];
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+            const configDB = this.dbManager.getConfigDB();
+
+            // 오프셋 계산
+            const offset = (page - 1) * limit;
+
+            // 댓글 목록 조회
+            const comments = await this.dbManager.allQuery(
+                forumDB,
+                `SELECT
+                    c.id,
+                    c.post_id,
+                    c.user_id,
+                    c.content,
+                    c.created_at,
+                    c.updated_at
+                 FROM comments c
+                 WHERE c.post_id = ?
+                 ORDER BY c.created_at ASC
+                 LIMIT ? OFFSET ?`,
+                [postId, limit, offset]
+            );
+
+            // 사용자 정보를 config DB에서 별도로 조회하여 추가
+            const commentsWithUserInfo = await Promise.all(
+                comments.map(async (comment) => {
+                    if (comment.user_id) {
+                        const user = await this.dbManager.getQuery(
+                            configDB,
+                            'SELECT username, role FROM users WHERE id = ?',
+                            [comment.user_id]
+                        );
+                        return {
+                            ...comment,
+                            username: user?.username || '알 수 없음',
+                            role: user?.role || 'user'
+                        };
+                    }
+                    return {
+                        ...comment,
+                        username: '알 수 없음',
+                        role: 'user'
+                    };
+                })
+            );
+
+            return commentsWithUserInfo;
+        } catch (error) {
+            console.error('댓글 목록 조회 실패:', error);
+            return [];
+        }
+    }
+
+    /**
+     * 댓글 수정
+     * @param {number} commentId - 댓글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {number} userId - 수정자 ID
+     * @param {string} content - 수정할 내용
+     * @returns {Promise<boolean>} 수정 성공 여부
+     */
+    async updateComment(commentId, subforumId, userId, content) {
+        if (!commentId || !subforumId || !userId || !content) {
+            throw new Error('필수 정보가 누락되었습니다.');
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            // 댓글 존재 및 권한 확인
+            const existingComment = await this.dbManager.getQuery(
+                forumDB,
+                'SELECT user_id FROM comments WHERE id = ?',
+                [commentId]
+            );
+
+            if (!existingComment) {
+                throw new Error('댓글을 찾을 수 없습니다.');
+            }
+
+            if (existingComment.user_id !== userId) {
+                throw new Error('댓글 수정 권한이 없습니다.');
+            }
+
+            // 댓글 수정
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                `UPDATE comments
+                 SET content = ?, updated_at = datetime('now')
+                 WHERE id = ?`,
+                [content, commentId]
+            );
+
+            if (result.changes === 0) {
+                throw new Error('댓글 수정에 실패했습니다.');
+            }
+
+            console.log(`댓글 수정 완료: ID ${commentId}`);
+            return true;
+        } catch (error) {
+            console.error('댓글 수정 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 댓글 삭제
+     * @param {number} commentId - 댓글 ID
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {number} userId - 삭제 요청자 ID
+     * @param {boolean} isModerator - 모더레이터 여부
+     * @returns {Promise<boolean>} 삭제 성공 여부
+     */
+    async deleteComment(commentId, subforumId, userId, isModerator = false) {
+        if (!commentId || !subforumId || !userId) {
+            throw new Error('필수 정보가 누락되었습니다.');
+        }
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+
+            // 댓글 존재 및 권한 확인
+            const existingComment = await this.dbManager.getQuery(
+                forumDB,
+                'SELECT user_id FROM comments WHERE id = ?',
+                [commentId]
+            );
+
+            if (!existingComment) {
+                throw new Error('댓글을 찾을 수 없습니다.');
+            }
+
+            // 작성자이거나 모더레이터인 경우에만 삭제 가능
+            if (existingComment.user_id !== userId && !isModerator) {
+                throw new Error('댓글 삭제 권한이 없습니다.');
+            }
+
+            // 댓글 삭제
+            const result = await this.dbManager.runQuery(
+                forumDB,
+                'DELETE FROM comments WHERE id = ?',
+                [commentId]
+            );
+
+            if (result.changes === 0) {
+                throw new Error('댓글 삭제에 실패했습니다.');
+            }
+
+            console.log(`댓글 삭제 완료: ID ${commentId}`);
+            return true;
+        } catch (error) {
+            console.error('댓글 삭제 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 첨부파일 저장
      * @param {number} postId - 게시글 ID
      * @param {number} subforumId - 서브포럼 ID

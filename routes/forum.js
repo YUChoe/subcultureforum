@@ -217,8 +217,8 @@ router.get('/subforum/:subforumId/post/:postId', async (req, res) => {
             });
         }
 
-        // TODO: 댓글 목록 조회 (댓글 시스템 구현 후)
-        const comments = [];
+        // 댓글 목록 조회
+        const comments = await forumService.getComments(postId, subforumId);
 
         res.render('pages/forum/post', {
             title: post.title,
@@ -432,7 +432,7 @@ router.post('/subforum/:subforumId/post/:postId/delete', async (req, res) => {
     }
 });
 
-// 댓글 작성 처리 (댓글 시스템 구현 후 활성화)
+// 댓글 작성 처리
 router.post('/subforum/:subforumId/post/:postId/comment', [
     body('content')
         .isLength({ min: 1 })
@@ -453,14 +453,69 @@ router.post('/subforum/:subforumId/post/:postId/comment', [
         const { content } = req.body;
         const userId = req.user.id;
 
-        // TODO: ForumService에서 댓글 생성 (댓글 시스템 구현 후)
-        // const comment = await forumService.createComment(userId, postId, subforumId, content);
-        // await forumService.updatePostLastCommentTime(postId, subforumId);
+        // 댓글 생성
+        const commentId = await forumService.createComment(userId, postId, subforumId, content);
+        await forumService.updatePostLastCommentTime(postId, subforumId);
 
-        res.json({ success: true, message: '댓글이 작성되었습니다.' });
+        res.json({ success: true, message: '댓글이 작성되었습니다.', commentId: commentId });
     } catch (error) {
         console.error('댓글 작성 오류:', error);
-        res.status(500).json({ error: '댓글 작성 중 오류가 발생했습니다.' });
+        res.status(500).json({ error: error.message || '댓글 작성 중 오류가 발생했습니다.' });
+    }
+});
+
+// 댓글 수정 처리
+router.put('/subforum/:subforumId/comment/:commentId', [
+    body('content')
+        .isLength({ min: 1 })
+        .withMessage('댓글 내용을 입력해주세요')
+], async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ error: errors.array()[0].msg });
+        }
+
+        const commentId = parseInt(req.params.commentId);
+        const subforumId = parseInt(req.params.subforumId);
+        const { content } = req.body;
+        const userId = req.user.id;
+
+        // 댓글 수정
+        await forumService.updateComment(commentId, subforumId, userId, content);
+
+        res.json({ success: true, message: '댓글이 수정되었습니다.' });
+    } catch (error) {
+        console.error('댓글 수정 오류:', error);
+        res.status(500).json({ error: error.message || '댓글 수정 중 오류가 발생했습니다.' });
+    }
+});
+
+// 댓글 삭제 처리
+router.delete('/subforum/:subforumId/comment/:commentId', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    try {
+        const commentId = parseInt(req.params.commentId);
+        const subforumId = parseInt(req.params.subforumId);
+        const userId = req.user.id;
+
+        // 모더레이터 권한 확인
+        const isModerator = req.user.role === 'moderator' || req.user.role === 'super_admin';
+
+        // 댓글 삭제
+        await forumService.deleteComment(commentId, subforumId, userId, isModerator);
+
+        res.json({ success: true, message: '댓글이 삭제되었습니다.' });
+    } catch (error) {
+        console.error('댓글 삭제 오류:', error);
+        res.status(500).json({ error: error.message || '댓글 삭제 중 오류가 발생했습니다.' });
     }
 });
 

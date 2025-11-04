@@ -1,138 +1,136 @@
 <%- include('../../layouts/main', {
     title: title,
     body: `
-        <main class="container">
-            <nav aria-label="breadcrumb">
-                <ul>
-                    <li><a href="/">홈</a></li>
-                    <li><a href="/forum/subforum/${subforum.id}">${subforum.name}</a></li>
-                    <li>${post.title}</li>
-                </ul>
-            </nav>
+        <nav aria-label="breadcrumb">
+            <ul>
+                <li><a href="/">홈</a></li>
+                <li><a href="/forum/subforum/${subforum.id}">${subforum.name}</a></li>
+                <li>${post.title}</li>
+            </ul>
+        </nav>
 
-            <!-- 게시글 내용 -->
-            <article class="post-content">
-                <header>
-                    <h1>${post.title}</h1>
-                    <div class="post-meta">
-                        <span class="author">
-                            <strong>${post.username}</strong>
-                            ${post.role === 'super_admin' ? '<small class="badge admin">관리자</small>' : ''}
-                            ${post.role === 'moderator' ? '<small class="badge moderator">모더레이터</small>' : ''}
-                        </span>
-                        <span class="date">
-                            작성: ${new Date(post.created_at).toLocaleString('ko-KR')}
-                            ${post.updated_at !== post.created_at ?
-                                '<br><small>수정: ' + new Date(post.updated_at).toLocaleString('ko-KR') + '</small>' : ''
-                            }
-                        </span>
-                        <span class="stats">
-                            조회 ${post.view_count} · 댓글 ${post.comment_count}
-                        </span>
-                    </div>
-                </header>
+        <!-- 게시글 내용 -->
+        <article class="post-content">
+            <header>
+                <h1>${post.title}</h1>
+                <div class="post-meta">
+                    <span class="author">
+                        <strong>${post.username}</strong>
+                        ${post.role === 'super_admin' ? '<small class="badge admin">관리자</small>' : ''}
+                        ${post.role === 'moderator' ? '<small class="badge moderator">모더레이터</small>' : ''}
+                    </span>
+                    <span class="date">
+                        작성: ${new Date(post.created_at).toLocaleString('ko-KR')}
+                        ${post.updated_at !== post.created_at ?
+                            '<br><small>수정: ' + new Date(post.updated_at).toLocaleString('ko-KR') + '</small>' : ''
+                        }
+                    </span>
+                    <span class="stats">
+                        조회 ${post.view_count} · 댓글 ${post.comment_count}
+                    </span>
+                </div>
+            </header>
 
-                <div class="post-body">
-                    <div class="markdown-content">
-                        ${post.content_html || post.content.replace(/\\n/g, '<br>')}
-                    </div>
+            <div class="post-body">
+                <div class="markdown-content">
+                    ${post.content_html || post.content.replace(/\\n/g, '<br>')}
+                </div>
 
-                    ${post.attachments && post.attachments.length > 0 ? `
-                    <div class="attachments">
-                        <h4>첨부 이미지</h4>
-                        <div class="attachment-grid">
-                            ${post.attachments.map(attachment => `
-                                <div class="attachment-item">
-                                    <img
-                                        src="/forum/subforum/${subforum.id}/attachment/${attachment.id}"
-                                        alt="${attachment.original_filename}"
-                                        title="${attachment.original_filename}"
-                                        loading="lazy"
-                                    >
-                                    <div class="attachment-info">
-                                        <small>${attachment.original_filename}</small>
-                                        <small>${Math.round(attachment.file_size / 1024)}KB</small>
-                                    </div>
+                ${post.attachments && post.attachments.length > 0 ? `
+                <div class="attachments">
+                    <h4>첨부 이미지</h4>
+                    <div class="attachment-grid">
+                        ${post.attachments.map(attachment => `
+                            <div class="attachment-item">
+                                <img
+                                    src="/forum/subforum/${subforum.id}/attachment/${attachment.id}"
+                                    alt="${attachment.original_filename}"
+                                    title="${attachment.original_filename}"
+                                    loading="lazy"
+                                >
+                                <div class="attachment-info">
+                                    <small>${attachment.original_filename}</small>
+                                    <small>${Math.round(attachment.file_size / 1024)}KB</small>
                                 </div>
-                            `).join('')}
-                        </div>
+                            </div>
+                        `).join('')}
                     </div>
-                    ` : ''}
                 </div>
-
-                ${user && user.id === post.user_id ? `
-                <footer class="post-actions">
-                    <a href="/forum/subforum/${subforum.id}/post/${post.id}/edit" role="button" class="outline">수정</a>
-                    <button type="button" class="outline secondary" onclick="deletePost()">삭제</button>
-                </footer>
                 ` : ''}
-            </article>
+            </div>
 
-            <!-- 댓글 섹션 -->
-            <section class="comments-section">
-                <header>
-                    <h2>댓글 (${post.comment_count})</h2>
-                </header>
+            ${user && user.id === post.user_id ? `
+            <footer class="post-actions">
+                <a href="/forum/subforum/${subforum.id}/post/${post.id}/edit" role="button" class="outline">수정</a>
+                <button type="button" class="outline secondary" onclick="deletePost()">삭제</button>
+            </footer>
+            ` : ''}
+        </article>
 
-                ${user ? `
-                <!-- 댓글 작성 폼 -->
-                <form class="comment-form" onsubmit="submitComment(event)">
-                    <div class="grid">
-                        <label for="comment-content">
-                            댓글 작성
-                            <textarea
-                                id="comment-content"
-                                name="content"
-                                placeholder="댓글을 입력하세요"
-                                rows="4"
-                                required
-                            ></textarea>
-                        </label>
-                    </div>
-                    <div class="grid">
-                        <div></div>
-                        <div>
-                            <button type="submit" class="contrast">댓글 작성</button>
-                        </div>
-                    </div>
-                </form>
-                ` : `
-                <div class="login-prompt">
-                    <p><a href="/auth/login">로그인</a>하시면 댓글을 작성할 수 있습니다.</p>
+        <!-- 댓글 섹션 -->
+        <section class="comments-section">
+            <header>
+                <h2>댓글 (${post.comment_count})</h2>
+            </header>
+
+            ${user ? `
+            <!-- 댓글 작성 폼 -->
+            <form class="comment-form" onsubmit="submitComment(event)">
+                <div class="grid">
+                    <label for="comment-content">
+                        댓글 작성
+                        <textarea
+                            id="comment-content"
+                            name="content"
+                            placeholder="댓글을 입력하세요"
+                            rows="4"
+                            required
+                        ></textarea>
+                    </label>
                 </div>
-                `}
-
-                <!-- 댓글 목록 -->
-                <div class="comments-list">
-                    ${comments.length === 0 ? `
-                    <div class="no-comments">
-                        <p>아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!</p>
+                <div class="grid">
+                    <div></div>
+                    <div>
+                        <button type="submit" class="contrast">댓글 작성</button>
                     </div>
-                    ` : comments.map(comment => `
-                    <article class="comment">
-                        <header class="comment-header">
-                            <strong>${comment.username}</strong>
-                            ${comment.role === 'super_admin' ? '<small class="badge admin">관리자</small>' : ''}
-                            ${comment.role === 'moderator' ? '<small class="badge moderator">모더레이터</small>' : ''}
-                            <small class="comment-date">
-                                ${new Date(comment.created_at).toLocaleString('ko-KR')}
-                                ${comment.updated_at !== comment.created_at ? '(수정됨)' : ''}
-                            </small>
-                        </header>
-                        <div class="comment-body">
-                            <p>${comment.content.replace(/\\n/g, '<br>')}</p>
-                        </div>
-                        ${user && (user.id === comment.user_id || user.role === 'moderator' || user.role === 'super_admin') ? `
-                        <footer class="comment-actions">
-                            <button type="button" class="outline small" onclick="editComment(${comment.id})">수정</button>
-                            <button type="button" class="outline secondary small" onclick="deleteComment(${comment.id})">삭제</button>
-                        </footer>
-                        ` : ''}
-                    </article>
-                    `).join('')}
                 </div>
-            </section>
-        </main>
+            </form>
+            ` : `
+            <div class="login-prompt">
+                <p><a href="/auth/login">로그인</a>하시면 댓글을 작성할 수 있습니다.</p>
+            </div>
+            `}
+
+            <!-- 댓글 목록 -->
+            <div class="comments-list">
+                ${comments.length === 0 ? `
+                <div class="no-comments">
+                    <p>아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!</p>
+                </div>
+                ` : comments.map(comment => `
+                <article class="comment" data-comment-id="${comment.id}">
+                    <header class="comment-header">
+                        <strong>${comment.username}</strong>
+                        ${comment.role === 'super_admin' ? '<small class="badge admin">관리자</small>' : ''}
+                        ${comment.role === 'moderator' ? '<small class="badge moderator">모더레이터</small>' : ''}
+                        <small class="comment-date">
+                            ${new Date(comment.created_at).toLocaleString('ko-KR')}
+                            ${comment.updated_at !== comment.created_at ? '(수정됨)' : ''}
+                        </small>
+                    </header>
+                    <div class="comment-body">
+                        <p>${comment.content.replace(/\\n/g, '<br>')}</p>
+                    </div>
+                    ${user && (user.id === comment.user_id || user.role === 'moderator' || user.role === 'super_admin') ? `
+                    <footer class="comment-actions">
+                        <button type="button" class="outline small" onclick="editComment(${comment.id})">수정</button>
+                        <button type="button" class="outline secondary small" onclick="deleteComment(${comment.id})">삭제</button>
+                    </footer>
+                    ` : ''}
+                </article>
+                `).join('')}
+            </div>
+        </section>
 
         <style>
         .post-content {
@@ -409,14 +407,64 @@
             }
         }
 
-        function editComment(commentId) {
-            // TODO: 댓글 수정 기능 구현
-            alert('댓글 수정 기능은 댓글 시스템 구현 후 활성화됩니다.');
+        async function editComment(commentId) {
+            const commentElement = document.querySelector(\`[data-comment-id="\${commentId}"]\`);
+            if (!commentElement) return;
+
+            const contentElement = commentElement.querySelector('.comment-body p');
+            const currentContent = contentElement.textContent.replace(/<br>/g, '\\n');
+
+            const newContent = prompt('댓글을 수정하세요:', currentContent);
+            if (!newContent || newContent.trim() === '') return;
+
+            try {
+                const response = await fetch(\`/forum/subforum/${subforum.id}/comment/\${commentId}\`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content: newContent.trim() })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('댓글이 수정되었습니다.');
+                    window.location.reload();
+                } else {
+                    alert(result.error || '댓글 수정에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('댓글 수정 오류:', error);
+                alert('댓글 수정 중 오류가 발생했습니다.');
+            }
         }
 
-        function deleteComment(commentId) {
-            // TODO: 댓글 삭제 기능 구현
-            alert('댓글 삭제 기능은 댓글 시스템 구현 후 활성화됩니다.');
+        async function deleteComment(commentId) {
+            if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(\`/forum/subforum/${subforum.id}/comment/\${commentId}\`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('댓글이 삭제되었습니다.');
+                    window.location.reload();
+                } else {
+                    alert(result.error || '댓글 삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('댓글 삭제 오류:', error);
+                alert('댓글 삭제 중 오류가 발생했습니다.');
+            }
         }
         </script>
     `
