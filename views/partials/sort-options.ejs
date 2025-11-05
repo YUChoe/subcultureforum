@@ -1,0 +1,16 @@
+<%# 정렬 옵션 컴포넌트 %>
+<div class="sort-options">
+    <strong>정렬:</strong>
+    <a href="<%= baseUrl %>?sort=created_at<%= queryString || '' %>"
+       class="<%= (currentSort === 'created_at' || !currentSort) ? 'active' : '' %>">
+        최신글 순
+    </a>
+    <a href="<%= baseUrl %>?sort=last_comment_at<%= queryString || '' %>"
+       class="<%= currentSort === 'last_comment_at' ? 'active' : '' %>">
+        최신댓글 순
+    </a>
+    <a href="<%= baseUrl %>?sort=view_count<%= queryString || '' %>"
+       class="<%= currentSort === 'view_count' ? 'active' : '' %>">
+        조회수 순
+    </a>
+</div>

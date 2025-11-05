@@ -191,3 +191,305 @@ window.forumUtils = {
     apiRequest,
     submitComment
 };
+//
+ Alpine.js 글로벌 스토어 설정
+document.addEventListener('alpine:init', () => {
+    // 전역 상태 관리
+    Alpine.store('app', {
+        loading: false,
+        alerts: [],
+
+        setLoading(state) {
+            this.loading = state;
+        },
+
+        addAlert(message, type = 'info', duration = 5000) {
+            const alert = {
+                id: Date.now(),
+                message,
+                type,
+                show: true
+            };
+
+            this.alerts.push(alert);
+
+            // 자동 제거
+            if (duration > 0) {
+                setTimeout(() => {
+                    this.removeAlert(alert.id);
+                }, duration);
+            }
+
+            return alert.id;
+        },
+
+        removeAlert(id) {
+            const index = this.alerts.findIndex(alert => alert.id === id);
+            if (index > -1) {
+                this.alerts[index].show = false;
+                setTimeout(() => {
+                    this.alerts.splice(index, 1);
+                }, 300); // 트랜지션 시간
+            }
+        },
+
+        clearAlerts() {
+            this.alerts.forEach(alert => {
+                alert.show = false;
+            });
+            setTimeout(() => {
+                this.alerts = [];
+            }, 300);
+        }
+    });
+
+    // 포럼 관련 기능
+    Alpine.store('forum', {
+        currentSort: 'created_at',
+        currentPage: 1,
+        searchQuery: '',
+
+        setSortOption(sort) {
+            this.currentSort = sort;
+        },
+
+        setPage(page) {
+            this.currentPage = page;
+        },
+
+        setSearchQuery(query) {
+            this.searchQuery = query;
+        }
+    });
+});
+
+// Alpine.js 매직 프로퍼티 추가
+document.addEventListener('alpine:init', () => {
+    Alpine.magic('api', () => {
+        return {
+            async request(url, options = {}) {
+                Alpine.store('app').setLoading(true);
+
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        ...options
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || '요청 처리 중 오류가 발생했습니다.');
+                    }
+
+                    return data;
+                } catch (error) {
+                    Alpine.store('app').addAlert(error.message, 'error');
+                    throw error;
+                } finally {
+                    Alpine.store('app').setLoading(false);
+                }
+            },
+
+            async submitComment(postId, content) {
+                return this.request(`/forum/comment/${postId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ content })
+                });
+            },
+
+            async deleteComment(commentId) {
+                return this.request(`/comment/${commentId}/delete`, {
+                    method: 'DELETE'
+                });
+            },
+
+            async votePost(postId, voteType) {
+                return this.request(`/post/${postId}/vote`, {
+                    method: 'POST',
+                    body: JSON.stringify({ type: voteType })
+                });
+            }
+        };
+    });
+});
+
+// 유틸리티 함수들
+const ForumUtils = {
+    // 날짜 포맷팅
+    formatDate(dateString, options = {}) {
+        const date = new Date(dateString);
+        const defaultOptions = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+
+        return date.toLocaleDateString('ko-KR', { ...defaultOptions, ...options });
+    },
+
+    // 상대 시간 표시
+    timeAgo(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        const intervals = [
+            { label: '년', seconds: 31536000 },
+            { label: '개월', seconds: 2592000 },
+            { label: '일', seconds: 86400 },
+            { label: '시간', seconds: 3600 },
+            { label: '분', seconds: 60 }
+        ];
+
+        for (const interval of intervals) {
+            const count = Math.floor(diffInSeconds / interval.seconds);
+            if (count > 0) {
+                return `${count}${interval.label} 전`;
+            }
+        }
+
+        return '방금 전';
+    },
+
+    // 텍스트 길이 제한
+    truncateText(text, maxLength = 100) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    },
+
+    // HTML 이스케이프
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    // 쿼리 스트링 파싱
+    parseQueryString(queryString = window.location.search) {
+        const params = new URLSearchParams(queryString);
+        const result = {};
+        for (const [key, value] of params) {
+            result[key] = value;
+        }
+        return result;
+    },
+
+    // URL 업데이트 (히스토리 API 사용)
+    updateUrl(params, replaceState = false) {
+        const url = new URL(window.location);
+
+        Object.keys(params).forEach(key => {
+            if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+                url.searchParams.set(key, params[key]);
+            } else {
+                url.searchParams.delete(key);
+            }
+        });
+
+        if (replaceState) {
+            window.history.replaceState({}, '', url);
+        } else {
+            window.history.pushState({}, '', url);
+        }
+    },
+
+    // 로컬 스토리지 헬퍼
+    storage: {
+        get(key, defaultValue = null) {
+            try {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : defaultValue;
+            } catch (error) {
+                console.error('로컬 스토리지 읽기 오류:', error);
+                return defaultValue;
+            }
+        },
+
+        set(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+                return true;
+            } catch (error) {
+                console.error('로컬 스토리지 쓰기 오류:', error);
+                return false;
+            }
+        },
+
+        remove(key) {
+            try {
+                localStorage.removeItem(key);
+                return true;
+            } catch (error) {
+                console.error('로컬 스토리지 삭제 오류:', error);
+                return false;
+            }
+        }
+    }
+};
+
+// 전역 객체에 추가
+window.ForumUtils = ForumUtils;
+
+// 키보드 단축키 설정
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + K: 검색 포커스
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[type="search"], input[name="query"]');
+        if (searchInput) {
+            searchInput.focus();
+        }
+    }
+
+    // ESC: 모달/드롭다운 닫기
+    if (e.key === 'Escape') {
+        // 열린 details 요소들 닫기
+        document.querySelectorAll('details[open]').forEach(details => {
+            details.removeAttribute('open');
+        });
+    }
+});
+
+// 페이지 가시성 API 사용 (탭 전환 감지)
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+        // 페이지가 다시 보일 때 실행할 코드
+        console.log('페이지가 활성화됨');
+    } else {
+        // 페이지가 숨겨질 때 실행할 코드
+        console.log('페이지가 비활성화됨');
+    }
+});
+
+// 서비스 워커 등록 (PWA 지원 준비)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+                console.log('ServiceWorker 등록 성공:', registration.scope);
+            })
+            .catch(function(error) {
+                console.log('ServiceWorker 등록 실패:', error);
+            });
+    });
+}
+
+// 개발 모드에서만 실행되는 코드
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('개발 모드에서 실행 중');
+
+    // 개발용 단축키
+    document.addEventListener('keydown', function(e) {
+        // Ctrl + Shift + D: 개발자 정보 표시
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            console.log('Alpine.js 스토어:', Alpine.store('app'), Alpine.store('forum'));
+            console.log('현재 URL 파라미터:', ForumUtils.parseQueryString());
+        }
+    });
+}

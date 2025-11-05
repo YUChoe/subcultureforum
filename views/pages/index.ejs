@@ -1,71 +1,187 @@
-<header>
-    <h1>포럼 서브포럼</h1>
+<header class="hero" x-data="{
+    stats: {
+        totalPosts: <%= typeof totalPosts !== 'undefined' ? totalPosts : 0 %>,
+        totalUsers: <%= typeof totalUsers !== 'undefined' ? totalUsers : 0 %>,
+        totalCategories: <%= typeof totalCategories !== 'undefined' ? totalCategories : 0 %>
+    }
+}">
+    <hgroup>
+        <h1>🎮 서브컬처 포럼</h1>
+        <p>게임, 애니메이션, 만화 등 서브컬처를 사랑하는 사람들의 커뮤니티</p>
+    </hgroup>
+
     <% if (isLoggedIn) { %>
-        <nav>
-            <ul>
-                <li>환영합니다, <%= user.username %>님!</li>
-                <li><a href="/profile">프로필</a></li>
-                <% if (user.role === 'super_admin') { %>
-                    <li><a href="/admin">관리자</a></li>
-                <% } %>
-                <li><a href="/auth/logout">로그아웃</a></li>
-            </ul>
-        </nav>
+        <div class="welcome-message">
+            <p>👋 환영합니다, <strong><%= user.username %></strong>님!</p>
+        </div>
     <% } else { %>
-        <nav>
-            <ul>
-                <li><a href="/auth/login">로그인</a></li>
-                <li><a href="/auth/register">회원가입</a></li>
-            </ul>
-        </nav>
+        <div class="cta-buttons">
+            <a href="/auth/register" role="button">🚀 지금 가입하기</a>
+            <a href="/auth/login" role="button" class="outline">🔑 로그인</a>
+        </div>
     <% } %>
+
+    <!-- 사이트 통계 -->
+    <div class="stats-grid" x-show="stats.totalPosts > 0 || stats.totalUsers > 0">
+        <div class="stat-item">
+            <span class="stat-number" x-text="stats.totalPosts.toLocaleString()"></span>
+            <span class="stat-label">게시글</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number" x-text="stats.totalUsers.toLocaleString()"></span>
+            <span class="stat-label">회원</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number" x-text="stats.totalCategories.toLocaleString()"></span>
+            <span class="stat-label">포럼</span>
+        </div>
+    </div>
 </header>
 
 <!-- 검색 폼 -->
-<section>
-    <form method="GET" action="/forum/search" x-data="{ query: '' }">
-        <fieldset role="group">
-            <input
-                type="search"
-                name="q"
-                placeholder="게시글 검색..."
-                x-model="query"
-                value="<%= typeof query !== 'undefined' ? query : '' %>"
-            >
-            <button type="submit">검색</button>
-        </fieldset>
-    </form>
+<section class="search-section">
+    <div class="search-container" x-data="{
+        query: '<%= typeof query !== 'undefined' ? query : '' %>',
+        suggestions: [],
+        showSuggestions: false,
+        async searchSuggestions() {
+            if (this.query.length < 2) {
+                this.suggestions = [];
+                this.showSuggestions = false;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(this.query)}`);
+                if (response.ok) {
+                    this.suggestions = await response.json();
+                    this.showSuggestions = this.suggestions.length > 0;
+                }
+            } catch (error) {
+                console.error('검색 제안 오류:', error);
+            }
+        }
+    }">
+        <form method="GET" action="/forum/search">
+            <fieldset role="group">
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="🔍 게시글, 댓글 검색..."
+                    x-model="query"
+                    @input.debounce.300ms="searchSuggestions()"
+                    @focus="showSuggestions = suggestions.length > 0"
+                    @blur.delay.200ms="showSuggestions = false"
+                    autocomplete="off"
+                >
+                <button type="submit" :disabled="!query.trim()">검색</button>
+            </fieldset>
+
+            <!-- 검색 제안 -->
+            <div class="search-suggestions" x-show="showSuggestions" x-transition>
+                <template x-for="suggestion in suggestions" :key="suggestion.id">
+                    <a :href="`/category/${suggestion.category_id}/post/${suggestion.id}`"
+                       class="suggestion-item"
+                       @click="showSuggestions = false">
+                        <strong x-text="suggestion.title"></strong>
+                        <small x-text="suggestion.category_name"></small>
+                    </a>
+                </template>
+            </div>
+        </form>
+    </div>
 </section>
 
-<!-- 서브포럼 목록 -->
-<section>
-    <% if (subforums && subforums.length > 0) { %>
-        <div class="grid">
-            <% subforums.forEach(subforum => { %>
-                <article>
+<!-- 포럼 카테고리 목록 -->
+<section class="categories-section">
+    <header>
+        <h2>📂 포럼 카테고리</h2>
+        <% if (isLoggedIn && user.role === 'super_admin') { %>
+            <a href="/admin/categories/new" role="button" class="outline">➕ 새 카테고리</a>
+        <% } %>
+    </header>
+
+    <% if (categories && categories.length > 0) { %>
+        <div class="categories-grid" x-data="{ expandedCategory: null }">
+            <% categories.forEach(category => { %>
+                <article class="forum-category" x-data="{
+                    category: {
+                        id: <%= category.id %>,
+                        name: '<%= category.name %>',
+                        description: '<%= category.description || '' %>',
+                        postCount: <%= category.post_count || 0 %>,
+                        commentCount: <%= category.comment_count || 0 %>,
+                        lastActivity: '<%= category.last_activity_at || '' %>'
+                    }
+                }">
                     <header>
-                        <h3><a href="/forum/subforum/<%= subforum.id %>"><%= subforum.name %></a></h3>
+                        <h3>
+                            <a href="/category/<%= category.id %>" class="category-link">
+                                <%= category.name %>
+                            </a>
+                        </h3>
+                        <button type="button"
+                                @click="expandedCategory = expandedCategory === category.id ? null : category.id"
+                                class="expand-btn outline"
+                                :class="{ 'active': expandedCategory === category.id }">
+                            <span x-text="expandedCategory === category.id ? '▼' : '▶'"></span>
+                        </button>
                     </header>
-                    <p><%= subforum.description || '설명이 없습니다.' %></p>
+
+                    <p class="category-description">
+                        <%= category.description || '포럼에 대한 설명이 없습니다.' %>
+                    </p>
+
+                    <div class="category-stats">
+                        <span class="stat">📝 <%= category.post_count || 0 %>개 게시글</span>
+                        <span class="stat">💬 <%= category.comment_count || 0 %>개 댓글</span>
+                        <% if (category.last_activity_at) { %>
+                            <span class="stat">🕒 <%= new Date(category.last_activity_at).toLocaleDateString('ko-KR') %></span>
+                        <% } %>
+                    </div>
+
+                    <!-- 최근 게시글 미리보기 -->
+                    <div x-show="expandedCategory === category.id"
+                         x-transition
+                         class="recent-posts-preview">
+                        <% if (category.recent_posts && category.recent_posts.length > 0) { %>
+                            <h6>최근 게시글</h6>
+                            <ul class="recent-posts-list">
+                                <% category.recent_posts.forEach(post => { %>
+                                    <li>
+                                        <a href="/category/<%= category.id %>/post/<%= post.id %>">
+                                            <%= post.title %>
+                                        </a>
+                                        <small>by <%= post.author_username %></small>
+                                    </li>
+                                <% }); %>
+                            </ul>
+                        <% } else { %>
+                            <p><em>아직 게시글이 없습니다.</em></p>
+                        <% } %>
+                    </div>
+
                     <footer>
-                        <small>
-                            게시글: <%= subforum.post_count || 0 %>개 |
-                            댓글: <%= subforum.comment_count || 0 %>개 |
-                            최근 활동: <%= subforum.last_activity_at ? new Date(subforum.last_activity_at).toLocaleDateString('ko-KR') : '없음' %>
-                        </small>
+                        <a href="/category/<%= category.id %>" role="button" class="outline">
+                            포럼 입장 →
+                        </a>
                     </footer>
                 </article>
             <% }); %>
         </div>
     <% } else { %>
-        <article>
+        <article class="empty-state">
             <header>
-                <h3>서브포럼이 없습니다</h3>
+                <h3>🏗️ 포럼 준비 중</h3>
             </header>
-            <p>아직 생성된 서브포럼이 없습니다.</p>
+            <p>아직 생성된 포럼 카테고리가 없습니다.</p>
             <% if (isLoggedIn && user.role === 'super_admin') { %>
                 <footer>
-                    <a href="/admin/forums/new" role="button">첫 번째 서브포럼 만들기</a>
+                    <a href="/admin/categories/new" role="button">첫 번째 카테고리 만들기</a>
+                </footer>
+            <% } else { %>
+                <footer>
+                    <p><em>관리자가 곧 포럼을 개설할 예정입니다.</em></p>
                 </footer>
             <% } %>
         </article>

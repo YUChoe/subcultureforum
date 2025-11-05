@@ -91,8 +91,42 @@ async function initializeApp() {
         });
 
         // 서버 시작
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`포럼 서버가 포트 ${PORT}에서 실행 중입니다.`);
+        });
+
+        // 포트 충돌 및 기타 서버 에러 처리
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`❌ 포트 ${PORT}이 이미 사용 중입니다. 다른 프로세스가 실행 중인지 확인하세요.`);
+                console.error('해결 방법:');
+                console.error('1. 다른 포트를 사용하려면: PORT=3001 node app.js');
+                console.error('2. 실행 중인 프로세스를 종료하세요');
+                process.exit(1);
+            } else if (err.code === 'EACCES') {
+                console.error(`❌ 포트 ${PORT}에 접근 권한이 없습니다. 관리자 권한으로 실행하거나 다른 포트를 사용하세요.`);
+                process.exit(1);
+            } else {
+                console.error('❌ 서버 시작 중 오류 발생:', err);
+                process.exit(1);
+            }
+        });
+
+        // 프로세스 종료 시 정리
+        process.on('SIGINT', () => {
+            console.log('\n서버를 종료합니다...');
+            server.close(() => {
+                console.log('서버가 정상적으로 종료되었습니다.');
+                process.exit(0);
+            });
+        });
+
+        process.on('SIGTERM', () => {
+            console.log('서버 종료 신호를 받았습니다...');
+            server.close(() => {
+                console.log('서버가 정상적으로 종료되었습니다.');
+                process.exit(0);
+            });
         });
 
     } catch (error) {

@@ -1,0 +1,14 @@
+# 이미지 폴더
+# 실제 아이콘 파일들은 다음과 같이 추가해야 합니다:
+# - icon-72x72.png
+# - icon-96x96.png
+# - icon-128x128.png
+# - icon-144x144.png
+# - icon-152x152.png
+# - icon-192x192.png
+# - icon-384x384.png
+# - icon-512x512.png
+# - screenshot-desktop.png
+# - screenshot-mobile.png
+# - shortcut-new-post.png
+# - shortcut-search.png

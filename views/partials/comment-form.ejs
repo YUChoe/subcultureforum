@@ -1,0 +1,44 @@
+<%# 댓글 작성 폼 컴포넌트 %>
+<% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
+    <div class="comment-form" x-data="{
+        content: '',
+        submitting: false,
+        async submitComment() {
+            if (!this.content.trim()) {
+                window.forumUtils.showAlert('댓글 내용을 입력해주세요.', 'warning');
+                return;
+            }
+
+            this.submitting = true;
+            try {
+                await window.forumUtils.submitComment(<%= post.id %>, this.content);
+                this.content = '';
+            } catch (error) {
+                // 에러는 이미 처리됨
+            } finally {
+                this.submitting = false;
+            }
+        }
+    }">
+        <h5>댓글 작성</h5>
+        <form @submit.prevent="submitComment()">
+            <textarea
+                x-model="content"
+                name="content"
+                placeholder="댓글을 입력하세요..."
+                rows="3"
+                required
+                :disabled="submitting"
+            ></textarea>
+            <button
+                type="submit"
+                :disabled="submitting || !content.trim()"
+                x-text="submitting ? '작성 중...' : '댓글 작성'"
+            ></button>
+        </form>
+    </div>
+<% } else { %>
+    <div class="comment-form">
+        <p>댓글을 작성하려면 <a href="/auth/login">로그인</a>이 필요합니다.</p>
+    </div>
+<% } %>

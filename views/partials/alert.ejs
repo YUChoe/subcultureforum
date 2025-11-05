@@ -1,0 +1,7 @@
+<%# 알림 메시지 컴포넌트 %>
+<% if (typeof alert !== 'undefined' && alert) { %>
+    <div class="alert alert-<%= alert.type || 'info' %>" x-data="{ show: true }" x-show="show" x-transition>
+        <%= alert.message %>
+        <button type="button" @click="show = false" style="float: right; background: none; border: none; font-size: 1.2em; cursor: pointer;">&times;</button>
+    </div>
+<% } %>

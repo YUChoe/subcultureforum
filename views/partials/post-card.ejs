@@ -1,0 +1,32 @@
+<%# 게시글 카드 컴포넌트 %>
+<article class="post-list-item" x-data="{ expanded: false }">
+    <header>
+        <h4><a href="/category/<%= post.category_id %>/post/<%= post.id %>"><%= post.title %></a></h4>
+        <div class="post-meta">
+            <span>작성자: <strong><%= post.author_username %></strong></span>
+            <span>작성일: <%= new Date(post.created_at).toLocaleDateString('ko-KR') %></span>
+            <span>조회수: <%= post.view_count || 0 %></span>
+            <% if (post.comment_count > 0) { %>
+                <span>댓글: <%= post.comment_count %></span>
+            <% } %>
+            <% if (post.updated_at && post.updated_at !== post.created_at) { %>
+                <span>수정일: <%= new Date(post.updated_at).toLocaleDateString('ko-KR') %></span>
+            <% } %>
+        </div>
+    </header>
+
+    <% if (post.content && post.content.length > 100) { %>
+        <div class="post-preview">
+            <p x-show="!expanded">
+                <%= post.content.substring(0, 100) %>...
+                <button type="button" @click="expanded = true" class="outline">더보기</button>
+            </p>
+            <div x-show="expanded" x-transition>
+                <p><%- post.content.replace(/\n/g, '<br>') %></p>
+                <button type="button" @click="expanded = false" class="outline">접기</button>
+            </div>
+        </div>
+    <% } else if (post.content) { %>
+        <p><%- post.content.replace(/\n/g, '<br>') %></p>
+    <% } %>
+</article>

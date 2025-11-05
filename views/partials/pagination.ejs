@@ -1,0 +1,39 @@
+<%# 페이지네이션 컴포넌트 %>
+<% if (typeof pagination !== 'undefined' && pagination && pagination.totalPages > 1) { %>
+    <nav class="pagination">
+        <% if (pagination.currentPage > 1) { %>
+            <a href="<%= pagination.baseUrl %>?page=<%= pagination.currentPage - 1 %><%= pagination.queryString || '' %>">&laquo; 이전</a>
+        <% } %>
+
+        <%
+        const startPage = Math.max(1, pagination.currentPage - 2);
+        const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+        %>
+
+        <% if (startPage > 1) { %>
+            <a href="<%= pagination.baseUrl %>?page=1<%= pagination.queryString || '' %>">1</a>
+            <% if (startPage > 2) { %>
+                <span>...</span>
+            <% } %>
+        <% } %>
+
+        <% for (let i = startPage; i <= endPage; i++) { %>
+            <% if (i === pagination.currentPage) { %>
+                <span class="current"><%= i %></span>
+            <% } else { %>
+                <a href="<%= pagination.baseUrl %>?page=<%= i %><%= pagination.queryString || '' %>"><%= i %></a>
+            <% } %>
+        <% } %>
+
+        <% if (endPage < pagination.totalPages) { %>
+            <% if (endPage < pagination.totalPages - 1) { %>
+                <span>...</span>
+            <% } %>
+            <a href="<%= pagination.baseUrl %>?page=<%= pagination.totalPages %><%= pagination.queryString || '' %>"><%= pagination.totalPages %></a>
+        <% } %>
+
+        <% if (pagination.currentPage < pagination.totalPages) { %>
+            <a href="<%= pagination.baseUrl %>?page=<%= pagination.currentPage + 1 %><%= pagination.queryString || '' %>">다음 &raquo;</a>
+        <% } %>
+    </nav>
+<% } %>

@@ -1,0 +1,46 @@
+<%# 댓글 목록 컴포넌트 %>
+<% if (typeof comments !== 'undefined' && comments && comments.length > 0) { %>
+    <div class="comments-section" x-data="{ showComments: true }">
+        <h5>
+            <button type="button" @click="showComments = !showComments" class="outline">
+                <span x-text="showComments ? '댓글 숨기기' : '댓글 보기'"></span>
+                (<%= comments.length %>)
+            </button>
+        </h5>
+
+        <div x-show="showComments" x-transition class="comments-list">
+            <% comments.forEach(function(comment) { %>
+                <article class="comment">
+                    <header>
+                        <span class="comment-author"><%= comment.author_username %></span>
+                        <span class="comment-date"><%= new Date(comment.created_at).toLocaleString('ko-KR') %></span>
+                        <% if (comment.updated_at && comment.updated_at !== comment.created_at) { %>
+                            <span class="comment-date">(수정됨)</span>
+                        <% } %>
+                    </header>
+                    <div class="comment-content">
+                        <%- comment.content.replace(/\n/g, '<br>') %>
+                    </div>
+
+                    <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn &&
+                           (user.id === comment.user_id || user.role === 'super_admin' ||
+                            (user.role === 'moderator' && typeof isModerator !== 'undefined' && isModerator))) { %>
+                        <footer class="comment-actions">
+                            <small>
+                                <a href="/comment/<%= comment.id %>/edit">수정</a>
+                                <a href="/comment/<%= comment.id %>/delete"
+                                   onclick="return confirm('정말 삭제하시겠습니까?')"
+                                   style="color: var(--pico-del-color);">삭제</a>
+                            </small>
+                        </footer>
+                    <% } %>
+                </article>
+            <% }); %>
+        </div>
+    </div>
+<% } else { %>
+    <div class="comments-section">
+        <h5>댓글 (0)</h5>
+        <p>첫 번째 댓글을 작성해보세요!</p>
+    </div>
+<% } %>

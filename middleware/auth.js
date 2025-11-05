@@ -356,6 +356,10 @@ const checkRoutePermission = (req, res, next) => {
 
     // 서브포럼 및 게시글 조회는 공개
     const publicViewPatterns = [
+        /^\/category\/\d+$/, // 카테고리 조회
+        /^\/category\/\d+\/post\/\d+$/, // 게시글 조회 (카테고리/게시글)
+        /^\/category\/\d+\/posts$/, // 카테고리 내 게시글 목록
+        /^\/category\/\d+\/posts\/page\/\d+$/, // 페이지네이션
         /^\/forum\/subforum\/\d+$/, // 서브포럼 목록 조회
         /^\/forum\/subforum\/\d+\/post\/\d+$/, // 게시글 조회 (서브포럼/게시글)
         /^\/forum\/subforum\/\d+\/posts$/, // 서브포럼 내 게시글 목록

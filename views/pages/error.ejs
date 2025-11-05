@@ -1,11 +1,85 @@
-<article>
-    <header>
-        <h1><%= error.status %> - <%= title %></h1>
-    </header>
+<div class="error-page" x-data="{
+    errorCode: '<%= error.status %>',
+    errorMessage: '<%= error.message %>',
+    getErrorEmoji() {
+        switch(this.errorCode) {
+            case '404': return '🔍';
+            case '403': return '🚫';
+            case '500': return '💥';
+            default: return '⚠️';
+        }
+    },
+    getErrorTitle() {
+        switch(this.errorCode) {
+            case '404': return '페이지를 찾을 수 없습니다';
+            case '403': return '접근이 거부되었습니다';
+            case '500': return '서버 오류가 발생했습니다';
+            default: return '오류가 발생했습니다';
+        }
+    },
+    getErrorDescription() {
+        switch(this.errorCode) {
+            case '404': return '요청하신 페이지가 존재하지 않거나 이동되었을 수 있습니다.';
+            case '403': return '이 페이지에 접근할 권한이 없습니다.';
+            case '500': return '서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+            default: return '예상치 못한 오류가 발생했습니다.';
+        }
+    }
+}">
+    <article class="error-container">
+        <header class="error-header">
+            <div class="error-icon" x-text="getErrorEmoji()"></div>
+            <h1 class="error-code" x-text="errorCode"></h1>
+            <h2 class="error-title" x-text="getErrorTitle()"></h2>
+        </header>
 
-    <p><%= error.message %></p>
+        <div class="error-content">
+            <p class="error-description" x-text="getErrorDescription()"></p>
 
-    <footer>
-        <a href="/" role="button">메인 페이지로 돌아가기</a>
-    </footer>
-</article>
+            <% if (error.message && error.message !== 'Not Found') { %>
+                <details class="error-details">
+                    <summary>기술적 세부사항</summary>
+                    <p><%= error.message %></p>
+                </details>
+            <% } %>
+        </div>
+
+        <footer class="error-actions">
+            <a href="/" role="button">🏠 메인 페이지</a>
+            <button type="button" onclick="history.back()" class="outline">← 이전 페이지</button>
+            <a href="/forum/search" role="button" class="outline">🔍 검색</a>
+        </footer>
+
+        <!-- 도움말 섹션 -->
+        <div class="error-help" x-show="errorCode === '404'">
+            <h4>이런 경우를 시도해보세요:</h4>
+            <ul>
+                <li>URL 주소를 다시 확인해보세요</li>
+                <li>메인 페이지에서 원하는 내용을 찾아보세요</li>
+                <li>검색 기능을 사용해보세요</li>
+                <li>문제가 계속되면 관리자에게 문의하세요</li>
+            </ul>
+        </div>
+
+        <div class="error-help" x-show="errorCode === '403'">
+            <h4>접근 권한이 필요합니다:</h4>
+            <ul>
+                <li>로그인이 필요한 페이지일 수 있습니다</li>
+                <li>관리자 권한이 필요한 기능일 수 있습니다</li>
+                <li>계정 상태를 확인해보세요</li>
+            </ul>
+            <% if (!isLoggedIn) { %>
+                <a href="/auth/login" role="button" class="outline">로그인하기</a>
+            <% } %>
+        </div>
+
+        <div class="error-help" x-show="errorCode === '500'">
+            <h4>서버 오류 해결 방법:</h4>
+            <ul>
+                <li>페이지를 새로고침해보세요</li>
+                <li>잠시 후 다시 시도해보세요</li>
+                <li>문제가 지속되면 관리자에게 신고해주세요</li>
+            </ul>
+        </div>
+    </article>
+</div>

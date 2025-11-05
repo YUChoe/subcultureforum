@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %> - 서브컬처 포럼</title>
+    <meta name="description" content="<%= typeof description !== 'undefined' ? description : '서브컬처 커뮤니티 포럼' %>">
 
     <!-- PicoCSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
@@ -13,43 +14,90 @@
 
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- PWA 메타 태그 -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1976d2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="서브컬처 포럼">
+    <link rel="apple-touch-icon" href="/images/icon-192x192.png">
+
+    <!-- 추가 메타 태그 -->
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="서브컬처 포럼">
 </head>
-<body>
+<body x-data="{
+    darkMode: localStorage.getItem('darkMode') === 'true',
+    toggleDarkMode() {
+        this.darkMode = !this.darkMode;
+        localStorage.setItem('darkMode', this.darkMode);
+        document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : 'light');
+    }
+}"
+x-init="document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')">
     <!-- 네비게이션 -->
     <nav class="container-fluid">
         <ul>
-            <li><strong><a href="/" class="contrast">서브컬처 포럼</a></strong></li>
+            <li><strong><a href="/" class="contrast">🏠 서브컬처 포럼</a></strong></li>
         </ul>
         <ul>
             <li><a href="/forum/search" class="contrast">🔍 검색</a></li>
+            <li>
+                <button type="button" @click="toggleDarkMode()" class="outline contrast" title="다크모드 토글">
+                    <span x-text="darkMode ? '☀️' : '🌙'"></span>
+                </button>
+            </li>
             <% if (isLoggedIn) { %>
                 <li>
                     <details class="dropdown">
-                        <summary><%= user.username %></summary>
+                        <summary>👤 <%= user.username %></summary>
                         <ul dir="rtl">
                             <% if (user.role === 'super_admin') { %>
-                                <li><a href="/admin">관리자 패널</a></li>
+                                <li><a href="/admin">⚙️ 관리자 패널</a></li>
                             <% } %>
-                            <li><a href="/profile">프로필</a></li>
+                            <% if (user.role === 'moderator' || user.role === 'super_admin') { %>
+                                <li><a href="/moderate">🛡️ 모더레이션</a></li>
+                            <% } %>
+                            <li><a href="/profile">👤 프로필</a></li>
                             <li>
                                 <form method="POST" action="/auth/logout" style="margin: 0;">
-                                    <button type="submit" class="outline" style="width: 100%; margin: 0;">로그아웃</button>
+                                    <button type="submit" class="outline" style="width: 100%; margin: 0;">🚪 로그아웃</button>
                                 </form>
                             </li>
                         </ul>
                     </details>
                 </li>
             <% } else { %>
-                <li><a href="/auth/login">로그인</a></li>
-                <li><a href="/auth/register" role="button">회원가입</a></li>
+                <li><a href="/auth/login">🔑 로그인</a></li>
+                <li><a href="/auth/register" role="button">📝 회원가입</a></li>
             <% } %>
         </ul>
     </nav>
 
+    <!-- 알림 메시지 영역 -->
+    <div id="alert-container" class="container"></div>
+
     <!-- 메인 컨텐츠 -->
     <main class="container">
+        <!-- 전역 알림 표시 -->
+        <% if (typeof messages !== 'undefined' && messages) { %>
+            <% if (messages.success) { %>
+                <%- include('../partials/alert', { alert: { type: 'success', message: messages.success } }) %>
+            <% } %>
+            <% if (messages.error) { %>
+                <%- include('../partials/alert', { alert: { type: 'error', message: messages.error } }) %>
+            <% } %>
+            <% if (messages.warning) { %>
+                <%- include('../partials/alert', { alert: { type: 'warning', message: messages.warning } }) %>
+            <% } %>
+        <% } %>
+
         <%- body %>
     </main>
+
+    <!-- 전역 모달 -->
+    <%- include('../partials/modal') %>
 
     <!-- 푸터 -->
     <footer class="container-fluid">

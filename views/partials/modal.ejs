@@ -1,0 +1,66 @@
+<%# 모달 컴포넌트 %>
+<div x-data="{
+    showModal: false,
+    modalTitle: '',
+    modalContent: '',
+    modalActions: [],
+    openModal(title, content, actions = []) {
+        this.modalTitle = title;
+        this.modalContent = content;
+        this.modalActions = actions;
+        this.showModal = true;
+        document.body.style.overflow = 'hidden';
+    },
+    closeModal() {
+        this.showModal = false;
+        document.body.style.overflow = '';
+    }
+}"
+@keydown.escape.window="closeModal()"
+@modal-open.window="openModal($event.detail.title, $event.detail.content, $event.detail.actions)">
+
+    <!-- 모달 오버레이 -->
+    <div x-show="showModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="modal-overlay"
+         @click="closeModal()">
+    </div>
+
+    <!-- 모달 컨텐츠 -->
+    <div x-show="showModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-90"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform scale-100"
+         x-transition:leave-end="opacity-0 transform scale-90"
+         class="modal-container"
+         @click.stop>
+
+        <article class="modal-content">
+            <header class="modal-header">
+                <h3 x-text="modalTitle"></h3>
+                <button type="button" @click="closeModal()" class="modal-close" aria-label="닫기">
+                    &times;
+                </button>
+            </header>
+
+            <div class="modal-body" x-html="modalContent"></div>
+
+            <footer class="modal-footer" x-show="modalActions.length > 0">
+                <template x-for="action in modalActions" :key="action.id">
+                    <button type="button"
+                            :class="action.class || 'outline'"
+                            @click="action.handler(); closeModal()"
+                            x-text="action.text">
+                    </button>
+                </template>
+            </footer>
+        </article>
+    </div>
+</div>
