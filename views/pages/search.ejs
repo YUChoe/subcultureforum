@@ -1,45 +1,540 @@
-<h1>검색 결과</h1>
+<%- include('../layouts/main', {
+    title: '검색 - 서브컬처 포럼',
+    body: `
+        <main class="container">
+            <div class="search-page">
+                <header class="search-header">
+                    <h1>🔍 통합 검색</h1>
+                    <p>포럼 전체에서 게시글과 댓글을 검색할 수 있습니다</p>
+                </header>
 
-<!-- 검색 폼 -->
-<form method="GET" action="/search">
-    <fieldset role="group">
-        <input type="search" name="q" placeholder="게시글 검색..." value="<%= query %>">
-        <button type="submit">검색</button>
-    </fieldset>
+                <!-- 검색 폼 -->
+                <section class="search-form-section">
+                    <form method="GET" action="/search" class="main-search-form">
+                        <div class="search-input-group">
+                            <input
+                                type="search"
+                                name="q"
+                                placeholder="🔍 게시글, 댓글 검색..."
+                                value="${query || ''}"
+                                autocomplete="off"
+                                class="search-input"
+                            >
+                            <button type="submit" class="search-button">
+                                <span class="search-icon">🚀</span>
+                                검색
+                            </button>
+                        </div>
 
-    <% if (categoryId) { %>
-        <input type="hidden" name="category" value="<%= categoryId %>">
-    <% } %>
-</form>
+                        ${categoryId ? '<input type="hidden" name="category" value="' + categoryId + '">' : ''}
+                    </form>
 
-<% if (query) { %>
-    <h2>"<%= query %>" 검색 결과</h2>
+                    <div class="search-tips">
+                        <h4>💡 검색 팁</h4>
+                        <ul>
+                            <li>여러 단어로 검색하면 더 정확한 결과를 얻을 수 있습니다</li>
+                            <li>특정 포럼에서만 검색하려면 포럼 페이지에서 검색하세요</li>
+                            <li>최신순, 관련도순으로 정렬할 수 있습니다</li>
+                        </ul>
+                    </div>
+                </section>
 
-    <% if (results && results.length > 0) { %>
-        <section>
-            <% results.forEach(result => { %>
-                <article class="post-list-item">
-                    <header>
-                        <h3><a href="/forum/post/<%= result.id %>"><%= result.title %></a></h3>
-                    </header>
-                    <p><%= result.excerpt || result.content.substring(0, 200) %>...</p>
-                    <footer class="post-meta">
-                        <small>
-                            작성자: <%= result.username %> |
-                            작성일: <%= result.created_at %> |
-                            카테고리: <%= result.category_name %>
-                        </small>
-                    </footer>
-                </article>
-            <% }); %>
-        </section>
-    <% } else { %>
-        <article>
-            <p>검색 결과가 없습니다.</p>
-        </article>
-    <% } %>
-<% } else { %>
-    <article>
-        <p>검색어를 입력해주세요.</p>
-    </article>
-<% } %>
+                ${query ? `
+                    <section class="search-results">
+                        <header class="results-header">
+                            <h2>📋 "${query}" 검색 결과</h2>
+                            ${results && results.length > 0 ?
+                                '<p class="results-count">총 ' + results.length + '개의 결과를 찾았습니다</p>' :
+                                '<p class="results-count">검색 결과가 없습니다</p>'
+                            }
+                        </header>
+
+                        ${results && results.length > 0 ? `
+                            <div class="results-list">
+                                ${results.map(result => `
+                                    <article class="result-item">
+                                        <header class="result-header">
+                                            <h3 class="result-title">
+                                                <a href="/forum/post/${result.id}">
+                                                    ${result.title}
+                                                </a>
+                                            </h3>
+                                            <div class="result-meta">
+                                                <span class="result-category">📂 ${result.category_name || '알 수 없음'}</span>
+                                                <span class="result-author">👤 ${result.username || '알 수 없음'}</span>
+                                                <span class="result-date">📅 ${new Date(result.created_at).toLocaleDateString('ko-KR')}</span>
+                                            </div>
+                                        </header>
+
+                                        <div class="result-content">
+                                            <p class="result-excerpt">
+                                                ${result.excerpt || (result.content ? result.content.substring(0, 200) + '...' : '내용 미리보기가 없습니다.')}
+                                            </p>
+                                        </div>
+
+                                        <footer class="result-footer">
+                                            <div class="result-stats">
+                                                <span class="stat">👁️ 조회 ${result.view_count || 0}</span>
+                                                <span class="stat">💬 댓글 ${result.comment_count || 0}</span>
+                                            </div>
+                                            <a href="/forum/post/${result.id}" class="result-link">
+                                                자세히 보기 →
+                                            </a>
+                                        </footer>
+                                    </article>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="no-results">
+                                <div class="no-results-icon">🔍</div>
+                                <h3>검색 결과가 없습니다</h3>
+                                <p>다른 검색어로 시도해보세요</p>
+                                <div class="search-suggestions">
+                                    <h4>검색 제안:</h4>
+                                    <ul>
+                                        <li>검색어의 철자를 확인해보세요</li>
+                                        <li>더 일반적인 단어를 사용해보세요</li>
+                                        <li>단어 수를 줄여보세요</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        `}
+                    </section>
+                ` : `
+                    <section class="search-welcome">
+                        <div class="welcome-content">
+                            <div class="welcome-icon">🎯</div>
+                            <h3>원하는 내용을 찾아보세요</h3>
+                            <p>검색어를 입력하여 포럼 전체에서 게시글과 댓글을 검색할 수 있습니다</p>
+
+                            <div class="popular-searches">
+                                <h4>🔥 인기 검색어</h4>
+                                <div class="search-tags">
+                                    <a href="/search?q=게임" class="search-tag">게임</a>
+                                    <a href="/search?q=애니메이션" class="search-tag">애니메이션</a>
+                                    <a href="/search?q=만화" class="search-tag">만화</a>
+                                    <a href="/search?q=리뷰" class="search-tag">리뷰</a>
+                                    <a href="/search?q=추천" class="search-tag">추천</a>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                `}
+            </div>
+        </main>
+
+        <style>
+            /* 루리웹 스타일 기반 검색 페이지 */
+            .search-page {
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 2rem;
+            }
+
+            .search-header {
+                text-align: center;
+                margin-bottom: 3rem;
+                padding: 2rem;
+                background: var(--pico-card-background-color);
+                border-radius: 1rem;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                border: 1px solid var(--pico-muted-border-color);
+            }
+
+            .search-header h1 {
+                font-size: 2.2rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                background: linear-gradient(135deg, var(--pico-primary), var(--pico-secondary));
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .search-header p {
+                font-size: 1.1rem;
+                color: var(--pico-muted-color);
+                margin: 0;
+            }
+
+            .search-form-section {
+                margin-bottom: 3rem;
+            }
+
+            .main-search-form {
+                margin-bottom: 2rem;
+            }
+
+            .search-input-group {
+                display: flex;
+                gap: 0;
+                background: var(--pico-card-background-color);
+                border-radius: 0.75rem;
+                padding: 0.5rem;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                border: 2px solid var(--pico-muted-border-color);
+                transition: border-color 0.2s;
+            }
+
+            .search-input-group:focus-within {
+                border-color: var(--pico-primary);
+            }
+
+            .search-input {
+                flex: 1;
+                border: none;
+                background: transparent;
+                font-size: 1.2rem;
+                padding: 1rem 1.5rem;
+                outline: none;
+            }
+
+            .search-button {
+                background: linear-gradient(135deg, var(--pico-primary), var(--pico-secondary));
+                color: white;
+                border: none;
+                padding: 1rem 2rem;
+                border-radius: 0.5rem;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .search-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            }
+
+            .search-icon {
+                font-size: 1rem;
+            }
+
+            .search-tips {
+                background: var(--pico-background-color);
+                border-radius: 0.75rem;
+                padding: 1.5rem;
+                border: 1px solid var(--pico-muted-border-color);
+            }
+
+            .search-tips h4 {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: var(--pico-primary);
+            }
+
+            .search-tips ul {
+                margin: 0;
+                padding-left: 1.5rem;
+            }
+
+            .search-tips li {
+                color: var(--pico-muted-color);
+                margin-bottom: 0.5rem;
+                line-height: 1.5;
+            }
+
+            .results-header {
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid var(--pico-muted-border-color);
+            }
+
+            .results-header h2 {
+                font-size: 1.8rem;
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                color: var(--pico-color);
+            }
+
+            .results-count {
+                font-size: 1rem;
+                color: var(--pico-muted-color);
+                margin: 0;
+            }
+
+            .results-list {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .result-item {
+                background: var(--pico-card-background-color);
+                border-radius: 0.75rem;
+                padding: 2rem;
+                border: 1px solid var(--pico-muted-border-color);
+                transition: all 0.2s;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .result-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+                border-color: var(--pico-primary);
+            }
+
+            .result-header {
+                margin-bottom: 1rem;
+            }
+
+            .result-title {
+                margin: 0 0 0.75rem 0;
+                font-size: 1.3rem;
+                font-weight: 600;
+                line-height: 1.4;
+            }
+
+            .result-title a {
+                text-decoration: none;
+                color: var(--pico-color);
+                transition: color 0.2s;
+            }
+
+            .result-title a:hover {
+                color: var(--pico-primary);
+            }
+
+            .result-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1rem;
+                font-size: 0.9rem;
+                color: var(--pico-muted-color);
+            }
+
+            .result-meta span {
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+            }
+
+            .result-content {
+                margin: 1.5rem 0;
+            }
+
+            .result-excerpt {
+                color: var(--pico-muted-color);
+                line-height: 1.6;
+                font-size: 1rem;
+                margin: 0;
+            }
+
+            .result-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-top: 1rem;
+                border-top: 1px solid var(--pico-muted-border-color);
+            }
+
+            .result-stats {
+                display: flex;
+                gap: 1rem;
+                font-size: 0.9rem;
+                color: var(--pico-muted-color);
+            }
+
+            .result-link {
+                color: var(--pico-primary);
+                text-decoration: none;
+                font-weight: 600;
+                transition: color 0.2s;
+            }
+
+            .result-link:hover {
+                color: var(--pico-secondary);
+            }
+
+            .no-results {
+                text-align: center;
+                padding: 4rem 2rem;
+                background: var(--pico-card-background-color);
+                border-radius: 0.75rem;
+                border: 2px dashed var(--pico-muted-border-color);
+            }
+
+            .no-results-icon {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+            }
+
+            .no-results h3 {
+                font-size: 1.5rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: var(--pico-color);
+            }
+
+            .no-results p {
+                font-size: 1.1rem;
+                color: var(--pico-muted-color);
+                margin-bottom: 2rem;
+            }
+
+            .search-suggestions {
+                text-align: left;
+                max-width: 400px;
+                margin: 0 auto;
+            }
+
+            .search-suggestions h4 {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: var(--pico-primary);
+            }
+
+            .search-suggestions ul {
+                margin: 0;
+                padding-left: 1.5rem;
+            }
+
+            .search-suggestions li {
+                color: var(--pico-muted-color);
+                margin-bottom: 0.5rem;
+                line-height: 1.5;
+            }
+
+            .search-welcome {
+                text-align: center;
+                padding: 4rem 2rem;
+                background: var(--pico-card-background-color);
+                border-radius: 0.75rem;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .welcome-icon {
+                font-size: 4rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .welcome-content h3 {
+                font-size: 1.8rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: var(--pico-color);
+            }
+
+            .welcome-content p {
+                font-size: 1.1rem;
+                color: var(--pico-muted-color);
+                margin-bottom: 2.5rem;
+                line-height: 1.6;
+            }
+
+            .popular-searches h4 {
+                font-size: 1.2rem;
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+                color: var(--pico-primary);
+            }
+
+            .search-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1rem;
+                justify-content: center;
+            }
+
+            .search-tag {
+                padding: 0.5rem 1rem;
+                background: var(--pico-background-color);
+                border: 2px solid var(--pico-muted-border-color);
+                border-radius: 2rem;
+                text-decoration: none;
+                color: var(--pico-color);
+                font-weight: 500;
+                transition: all 0.2s;
+            }
+
+            .search-tag:hover {
+                border-color: var(--pico-primary);
+                background: var(--pico-primary);
+                color: white;
+                transform: translateY(-2px);
+            }
+
+            /* 반응형 디자인 */
+            @media (max-width: 768px) {
+                .search-page {
+                    padding: 1rem;
+                }
+
+                .search-header {
+                    padding: 1.5rem;
+                }
+
+                .search-header h1 {
+                    font-size: 1.8rem;
+                }
+
+                .search-input-group {
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .search-input {
+                    font-size: 1rem;
+                    padding: 0.875rem 1rem;
+                }
+
+                .search-button {
+                    padding: 0.875rem 1.5rem;
+                    font-size: 1rem;
+                }
+
+                .result-item {
+                    padding: 1.5rem;
+                }
+
+                .result-title {
+                    font-size: 1.1rem;
+                }
+
+                .result-meta {
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .result-footer {
+                    flex-direction: column;
+                    gap: 1rem;
+                    align-items: stretch;
+                }
+
+                .search-tags {
+                    gap: 0.75rem;
+                }
+
+                .search-tag {
+                    padding: 0.4rem 0.8rem;
+                    font-size: 0.9rem;
+                }
+            }
+
+            /* 다크 모드 지원 */
+            @media (prefers-color-scheme: dark) {
+                .search-header {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                }
+
+                .search-input-group {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                }
+
+                .result-item:hover {
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+                }
+
+                .search-welcome {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                }
+            }
+        </style>
+    `
+}) %>

@@ -11,23 +11,32 @@
 
         <!-- 게시글 내용 -->
         <article class="post-content">
-            <header>
-                <h1>${post.title}</h1>
+            <header class="post-header">
+                <h1 class="post-title">${post.title}</h1>
                 <div class="post-meta">
-                    <span class="author">
-                        <strong>${post.username}</strong>
-                        ${post.role === 'super_admin' ? '<small class="badge admin">관리자</small>' : ''}
-                        ${post.role === 'moderator' ? '<small class="badge moderator">모더레이터</small>' : ''}
-                    </span>
-                    <span class="date">
-                        작성: ${new Date(post.created_at).toLocaleString('ko-KR')}
-                        ${post.updated_at !== post.created_at ?
-                            '<br><small>수정: ' + new Date(post.updated_at).toLocaleString('ko-KR') + '</small>' : ''
-                        }
-                    </span>
-                    <span class="stats">
-                        조회 ${post.view_count} · 댓글 ${post.comment_count}
-                    </span>
+                    <div class="author-info">
+                        <div class="author-avatar">
+                            ${post.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="author-details">
+                            <div class="author-name">
+                                ${post.username}
+                                ${post.role === 'super_admin' ? '<span class="badge admin">관리자</span>' : ''}
+                                ${post.role === 'moderator' ? '<span class="badge moderator">모더레이터</span>' : ''}
+                            </div>
+                            <div class="post-date">
+                                작성: ${new Date(post.created_at).toLocaleString('ko-KR')}
+                                ${post.updated_at !== post.created_at ?
+                                    '<br>수정: ' + new Date(post.updated_at).toLocaleString('ko-KR') : ''
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div></div>
+                    <div class="post-stats">
+                        <div>조회 ${post.view_count}</div>
+                        <div>댓글 ${post.comment_count}</div>
+                    </div>
                 </div>
             </header>
 
@@ -69,8 +78,8 @@
 
         <!-- 댓글 섹션 -->
         <section class="comments-section">
-            <header>
-                <h2>댓글 (${post.comment_count})</h2>
+            <header class="comments-header">
+                <h2>💬 댓글 (${post.comment_count})</h2>
             </header>
 
             ${user ? `
@@ -105,26 +114,36 @@
             <div class="comments-list">
                 ${comments.length === 0 ? `
                 <div class="no-comments">
-                    <p>아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!</p>
+                    <p>💭 아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!</p>
                 </div>
                 ` : comments.map(comment => `
                 <article class="comment" data-comment-id="${comment.id}">
                     <header class="comment-header">
-                        <strong>${comment.username}</strong>
-                        ${comment.role === 'super_admin' ? '<small class="badge admin">관리자</small>' : ''}
-                        ${comment.role === 'moderator' ? '<small class="badge moderator">모더레이터</small>' : ''}
-                        <small class="comment-date">
+                        <div class="comment-author">
+                            <div class="comment-avatar">
+                                ${comment.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="comment-author-name">
+                                    ${comment.username}
+                                    ${comment.role === 'super_admin' ? '<span class="badge admin">관리자</span>' : ''}
+                                    ${comment.role === 'moderator' ? '<span class="badge moderator">모더레이터</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div></div>
+                        <div class="comment-date">
                             ${new Date(comment.created_at).toLocaleString('ko-KR')}
-                            ${comment.updated_at !== comment.created_at ? '(수정됨)' : ''}
-                        </small>
+                            ${comment.updated_at !== comment.created_at ? ' (수정됨)' : ''}
+                        </div>
                     </header>
                     <div class="comment-body">
                         <p>${comment.content.replace(/\\n/g, '<br>')}</p>
                     </div>
                     ${user && (user.id === comment.user_id || user.role === 'moderator' || user.role === 'super_admin') ? `
                     <footer class="comment-actions">
-                        <button type="button" class="outline small" onclick="editComment(${comment.id})">수정</button>
-                        <button type="button" class="outline secondary small" onclick="deleteComment(${comment.id})">삭제</button>
+                        <button type="button" class="outline" onclick="editComment(${comment.id})">수정</button>
+                        <button type="button" class="outline secondary" onclick="deleteComment(${comment.id})">삭제</button>
                     </footer>
                     ` : ''}
                 </article>
@@ -133,185 +152,329 @@
         </section>
 
         <style>
+        /* 고밀도 정보 표시를 위한 컴팩트 스타일 */
         .post-content {
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
+            background-color: var(--pico-card-background-color);
+            border-radius: 0.25rem;
+            padding: 1rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-header {
+            border-bottom: 1px solid var(--pico-muted-border-color);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+            color: var(--pico-color);
         }
 
         .post-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 0.5rem;
-            font-size: 0.875rem;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.75rem;
+            align-items: center;
+            font-size: 0.85rem;
             color: var(--pico-muted-color);
         }
 
-        .post-meta .author {
+        .author-info {
             display: flex;
             align-items: center;
+            gap: 0.5rem;
+        }
+
+        .author-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--pico-primary), var(--pico-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .author-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+
+        .author-name {
+            font-weight: 600;
+            color: var(--pico-color);
+            font-size: 0.9rem;
+        }
+
+        .post-date {
+            font-size: 0.75rem;
+            color: var(--pico-muted-color);
+        }
+
+        .post-stats {
+            text-align: right;
+            font-size: 0.8rem;
+            display: flex;
             gap: 0.5rem;
         }
 
         .badge {
-            padding: 0.125rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.75rem;
+            font-size: 0.65rem;
             font-weight: 600;
+            margin-left: 0.25rem;
         }
 
         .badge.admin {
-            background-color: var(--pico-primary-background);
-            color: var(--pico-primary-inverse);
+            background-color: #dc3545;
+            color: white;
         }
 
         .badge.moderator {
-            background-color: var(--pico-secondary-background);
-            color: var(--pico-secondary-inverse);
+            background-color: #28a745;
+            color: white;
         }
 
         .post-body {
-            margin: 1.5rem 0;
-            line-height: 1.6;
+            margin: 1rem 0;
+            line-height: 1.5;
+            font-size: 0.95rem;
         }
 
         .post-actions {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             justify-content: flex-end;
             margin-top: 1rem;
-            padding-top: 1rem;
+            padding-top: 0.75rem;
             border-top: 1px solid var(--pico-muted-border-color);
         }
 
+        /* 댓글 섹션 - 컴팩트 스타일 */
         .comments-section {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 2px solid var(--pico-muted-border-color);
+            margin-top: 1.5rem;
+        }
+
+        .comments-header {
+            background-color: var(--pico-card-background-color);
+            padding: 0.75rem 1rem;
+            border-radius: 0.25rem 0.25rem 0 0;
+            border-bottom: 2px solid var(--pico-primary);
+            font-size: 1rem;
+            font-weight: 600;
         }
 
         .comment-form {
-            margin-bottom: 2rem;
-            padding: 1rem;
             background-color: var(--pico-card-background-color);
-            border-radius: 0.5rem;
+            padding: 1rem;
+            border-radius: 0 0 0.25rem 0.25rem;
+            margin-bottom: 0.5rem;
         }
 
         .login-prompt {
             text-align: center;
-            padding: 2rem;
-            background-color: var(--pico-card-background-color);
-            border-radius: 0.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .comments-list .comment {
-            margin-bottom: 1rem;
             padding: 1rem;
             background-color: var(--pico-card-background-color);
-            border-radius: 0.5rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+            border: 1px dashed var(--pico-muted-border-color);
+        }
+
+        .comments-list {
+            background-color: var(--pico-card-background-color);
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .comment {
+            border-bottom: 1px solid var(--pico-muted-border-color);
+            padding: 0.75rem;
+            transition: background-color 0.2s;
+        }
+
+        .comment:last-child {
+            border-bottom: none;
+        }
+
+        .comment:hover {
+            background-color: var(--pico-background-color);
         }
 
         .comment-header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .comment-author {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+        }
+
+        .comment-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--pico-secondary), var(--pico-primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+
+        .comment-author-name {
+            font-weight: 600;
+            color: var(--pico-color);
+            font-size: 0.85rem;
         }
 
         .comment-date {
-            margin-left: auto;
+            font-size: 0.75rem;
             color: var(--pico-muted-color);
         }
 
         .comment-body {
             margin: 0.5rem 0;
-            line-height: 1.5;
+            line-height: 1.4;
+            font-size: 0.9rem;
+            padding-left: 1.75rem;
         }
 
         .comment-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.25rem;
             justify-content: flex-end;
             margin-top: 0.5rem;
         }
 
-        .comment-actions button.small {
-            padding: 0.25rem 0.5rem;
+        .comment-actions button {
+            padding: 0.2rem 0.5rem;
             font-size: 0.75rem;
+            border-radius: 0.2rem;
         }
 
         .no-comments {
             text-align: center;
-            padding: 2rem;
+            padding: 1.5rem;
             color: var(--pico-muted-color);
+            font-style: italic;
+            font-size: 0.9rem;
         }
 
+        /* 마크다운 콘텐츠 스타일 - 컴팩트 */
         .markdown-content {
-            line-height: 1.6;
+            line-height: 1.5;
+            font-size: 0.95rem;
         }
 
         .markdown-content h1, .markdown-content h2, .markdown-content h3,
         .markdown-content h4, .markdown-content h5, .markdown-content h6 {
-            margin-top: 1.5rem;
+            margin-top: 1rem;
             margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .markdown-content h1 { font-size: 1.4rem; }
+        .markdown-content h2 { font-size: 1.2rem; }
+        .markdown-content h3 { font-size: 1.1rem; }
+        .markdown-content h4 { font-size: 1rem; }
+
+        .markdown-content p {
+            margin-bottom: 0.75rem;
         }
 
         .markdown-content pre {
-            background-color: var(--pico-card-background-color);
-            padding: 1rem;
+            background-color: var(--pico-background-color);
+            padding: 0.75rem;
             border-radius: 0.25rem;
             overflow-x: auto;
+            border: 1px solid var(--pico-muted-border-color);
+            font-size: 0.8rem;
         }
 
         .markdown-content code {
-            background-color: var(--pico-card-background-color);
-            padding: 0.125rem 0.25rem;
-            border-radius: 0.125rem;
-            font-size: 0.875em;
+            background-color: var(--pico-background-color);
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.2rem;
+            font-size: 0.85em;
+            border: 1px solid var(--pico-muted-border-color);
         }
 
         .markdown-content blockquote {
-            border-left: 4px solid var(--pico-primary);
+            border-left: 3px solid var(--pico-primary);
             padding-left: 1rem;
             margin: 1rem 0;
             color: var(--pico-muted-color);
+            font-style: italic;
+            background-color: var(--pico-background-color);
+            padding: 0.75rem 1rem;
+            border-radius: 0 0.25rem 0.25rem 0;
         }
 
+        .markdown-content ul, .markdown-content ol {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* 첨부파일 스타일 - 컴팩트 */
         .attachments {
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--pico-muted-border-color);
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background-color: var(--pico-background-color);
+            border-radius: 0.25rem;
+            border: 1px solid var(--pico-muted-border-color);
         }
 
         .attachments h4 {
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             color: var(--pico-color);
+            font-size: 0.95rem;
+            font-weight: 600;
         }
 
         .attachment-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.75rem;
         }
 
         .attachment-item {
             border: 1px solid var(--pico-muted-border-color);
-            border-radius: 0.5rem;
+            border-radius: 0.25rem;
             overflow: hidden;
             background-color: var(--pico-card-background-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .attachment-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         }
 
         .attachment-item img {
             width: 100%;
-            height: 150px;
+            height: 100px;
             object-fit: cover;
             cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .attachment-item img:hover {
-            transform: scale(1.05);
         }
 
         .attachment-info {
@@ -322,25 +485,68 @@
         .attachment-info small {
             display: block;
             color: var(--pico-muted-color);
+            font-size: 0.75rem;
         }
 
+        .attachment-info small:first-child {
+            font-weight: 600;
+            color: var(--pico-color);
+            margin-bottom: 0.1rem;
+        }
+
+        /* 반응형 디자인 */
         @media (max-width: 768px) {
+            .post-content {
+                padding: 0.75rem;
+            }
+
+            .post-title {
+                font-size: 1.1rem;
+            }
+
             .post-meta {
-                flex-direction: column;
+                grid-template-columns: 1fr;
                 gap: 0.5rem;
+            }
+
+            .post-stats {
+                text-align: left;
+            }
+
+            .post-body {
+                font-size: 0.9rem;
+            }
+
+            .comment-header {
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+            }
+
+            .comment-date {
+                text-align: left;
+            }
+
+            .comment-body {
+                padding-left: 0;
+            }
+
+            .attachment-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             }
 
             .post-actions {
                 flex-direction: column;
             }
+        }
 
-            .comment-header {
-                flex-wrap: wrap;
+        /* 다크 모드 지원 */
+        @media (prefers-color-scheme: dark) {
+            .post-content {
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
             }
 
-            .comment-date {
-                margin-left: 0;
-                width: 100%;
+            .attachment-item:hover {
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
             }
         }
         </style>

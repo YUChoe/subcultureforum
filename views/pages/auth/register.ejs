@@ -1,33 +1,400 @@
-<h1>회원가입</h1>
+<%- include('../../layouts/main', {
+    title: '회원가입 - 서브컬처 포럼',
+    body: `
+        <main class="container">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <header class="auth-header">
+                        <h1>📝 회원가입</h1>
+                        <p>서브컬처 포럼의 새로운 멤버가 되어보세요</p>
+                    </header>
 
-<% if (error) { %>
-    <div class="alert alert-error">
-        <%= error %>
-    </div>
-<% } %>
+                    ${error ? `
+                        <div class="alert alert-error">
+                            <span class="alert-icon">⚠️</span>
+                            <span class="alert-message">${error}</span>
+                        </div>
+                    ` : ''}
 
-<form method="POST" action="/auth/register">
-    <fieldset>
-        <label for="username">사용자명</label>
-        <input type="text" id="username" name="username" required
-               pattern="[a-zA-Z0-9_]+"
-               title="영문, 숫자, 언더스코어만 사용 가능합니다">
-        <small>3-20자, 영문/숫자/언더스코어만 사용 가능</small>
+                    <form method="POST" action="/auth/register" class="auth-form">
+                        <div class="form-group">
+                            <label for="username">
+                                <span class="label-icon">👤</span>
+                                사용자명
+                            </label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="사용자명을 입력하세요"
+                                required
+                                pattern="[a-zA-Z0-9_]+"
+                                title="영문, 숫자, 언더스코어만 사용 가능합니다"
+                                autocomplete="username"
+                            >
+                            <small class="form-help">3-20자, 영문/숫자/언더스코어만 사용 가능</small>
+                        </div>
 
-        <label for="email">이메일</label>
-        <input type="email" id="email" name="email" required>
+                        <div class="form-group">
+                            <label for="email">
+                                <span class="label-icon">📧</span>
+                                이메일
+                            </label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="이메일 주소를 입력하세요"
+                                required
+                                autocomplete="email"
+                            >
+                        </div>
 
-        <label for="password">비밀번호</label>
-        <input type="password" id="password" name="password" required minlength="6">
-        <small>최소 6자 이상</small>
+                        <div class="form-group">
+                            <label for="password">
+                                <span class="label-icon">🔒</span>
+                                비밀번호
+                            </label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="비밀번호를 입력하세요"
+                                required
+                                minlength="6"
+                                autocomplete="new-password"
+                            >
+                            <small class="form-help">최소 6자 이상</small>
+                        </div>
 
-        <label for="confirmPassword">비밀번호 확인</label>
-        <input type="password" id="confirmPassword" name="confirmPassword" required>
+                        <div class="form-group">
+                            <label for="confirmPassword">
+                                <span class="label-icon">🔐</span>
+                                비밀번호 확인
+                            </label>
+                            <input
+                                type="password"
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                placeholder="비밀번호를 다시 입력하세요"
+                                required
+                                autocomplete="new-password"
+                            >
+                        </div>
 
-        <button type="submit">회원가입</button>
-    </fieldset>
-</form>
+                        <button type="submit" class="auth-submit">
+                            <span class="button-icon">🚀</span>
+                            회원가입
+                        </button>
+                    </form>
 
-<p>
-    이미 계정이 있으신가요? <a href="/auth/login">로그인</a>
-</p>
+                    <div class="auth-footer">
+                        <p>
+                            이미 계정이 있으신가요?
+                            <a href="/auth/login" class="auth-link">로그인</a>
+                        </p>
+                        <p>
+                            <a href="/" class="auth-link secondary">← 메인으로 돌아가기</a>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="auth-info">
+                    <div class="info-card">
+                        <h3>🎯 회원 혜택</h3>
+                        <ul>
+                            <li>게시글 작성 및 댓글 참여</li>
+                            <li>개인 프로필 및 아바타</li>
+                            <li>포럼 구독 및 알림</li>
+                            <li>커뮤니티 이벤트 참여</li>
+                        </ul>
+
+                        <div class="terms-info">
+                            <h4>📋 이용약관</h4>
+                            <p>회원가입 시 커뮤니티 가이드라인을 준수하며, 건전한 토론 문화를 만들어가는데 동의하게 됩니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <style>
+            /* 루리웹 스타일 기반 회원가입 페이지 */
+            .auth-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 3rem;
+                max-width: 1100px;
+                margin: 2rem auto;
+                padding: 2rem;
+                min-height: calc(100vh - 200px);
+                align-items: start;
+            }
+
+            .auth-card {
+                background: var(--pico-card-background-color);
+                border-radius: 1rem;
+                padding: 3rem;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+                border: 1px solid var(--pico-muted-border-color);
+            }
+
+            .auth-header {
+                text-align: center;
+                margin-bottom: 2.5rem;
+            }
+
+            .auth-header h1 {
+                font-size: 2.2rem;
+                font-weight: 700;
+                margin-bottom: 0.75rem;
+                background: linear-gradient(135deg, var(--pico-primary), var(--pico-secondary));
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .auth-header p {
+                color: var(--pico-muted-color);
+                font-size: 1.1rem;
+                margin: 0;
+            }
+
+            .alert {
+                padding: 1rem 1.25rem;
+                border-radius: 0.75rem;
+                margin-bottom: 2rem;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-size: 1rem;
+            }
+
+            .alert-error {
+                background: #fee;
+                border: 1px solid #fcc;
+                color: #c33;
+            }
+
+            .alert-icon {
+                font-size: 1.2rem;
+            }
+
+            .alert-message {
+                flex: 1;
+            }
+
+            .auth-form {
+                margin-bottom: 2rem;
+            }
+
+            .form-group {
+                margin-bottom: 1.75rem;
+            }
+
+            .form-group label {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-weight: 600;
+                font-size: 1rem;
+                margin-bottom: 0.75rem;
+                color: var(--pico-color);
+            }
+
+            .label-icon {
+                font-size: 1.1rem;
+            }
+
+            .form-group input {
+                width: 100%;
+                padding: 1rem 1.25rem;
+                font-size: 1.1rem;
+                border: 2px solid var(--pico-muted-border-color);
+                border-radius: 0.75rem;
+                background: var(--pico-background-color);
+                transition: all 0.2s;
+            }
+
+            .form-group input:focus {
+                border-color: var(--pico-primary);
+                box-shadow: 0 0 0 3px rgba(var(--pico-primary-rgb), 0.1);
+                outline: none;
+            }
+
+            .form-help {
+                display: block;
+                margin-top: 0.5rem;
+                font-size: 0.9rem;
+                color: var(--pico-muted-color);
+                font-style: italic;
+            }
+
+            .auth-submit {
+                width: 100%;
+                padding: 1rem 1.5rem;
+                font-size: 1.2rem;
+                font-weight: 600;
+                background: linear-gradient(135deg, var(--pico-primary), var(--pico-secondary));
+                color: white;
+                border: none;
+                border-radius: 0.75rem;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.75rem;
+                margin-top: 1rem;
+            }
+
+            .auth-submit:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            }
+
+            .button-icon {
+                font-size: 1.1rem;
+            }
+
+            .auth-footer {
+                text-align: center;
+                padding-top: 2rem;
+                border-top: 1px solid var(--pico-muted-border-color);
+            }
+
+            .auth-footer p {
+                margin: 0.75rem 0;
+                color: var(--pico-muted-color);
+            }
+
+            .auth-link {
+                color: var(--pico-primary);
+                text-decoration: none;
+                font-weight: 600;
+                transition: color 0.2s;
+            }
+
+            .auth-link:hover {
+                color: var(--pico-secondary);
+                text-decoration: underline;
+            }
+
+            .auth-link.secondary {
+                color: var(--pico-muted-color);
+                font-weight: 500;
+            }
+
+            .auth-info {
+                display: flex;
+                flex-direction: column;
+                gap: 2rem;
+            }
+
+            .info-card {
+                background: var(--pico-background-color);
+                border-radius: 1rem;
+                padding: 2.5rem;
+                border: 2px solid var(--pico-muted-border-color);
+            }
+
+            .info-card h3 {
+                font-size: 1.5rem;
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+                color: var(--pico-primary);
+                text-align: center;
+            }
+
+            .info-card ul {
+                list-style: none;
+                padding: 0;
+                margin: 0 0 2rem 0;
+            }
+
+            .info-card li {
+                padding: 0.75rem 0;
+                color: var(--pico-muted-color);
+                font-size: 1rem;
+                border-bottom: 1px solid var(--pico-muted-border-color);
+            }
+
+            .info-card li:last-child {
+                border-bottom: none;
+            }
+
+            .info-card li::before {
+                content: '✓';
+                color: var(--pico-primary);
+                font-weight: bold;
+                margin-right: 0.75rem;
+            }
+
+            .terms-info {
+                padding-top: 1.5rem;
+                border-top: 1px solid var(--pico-muted-border-color);
+            }
+
+            .terms-info h4 {
+                font-size: 1.2rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: var(--pico-secondary);
+                text-align: center;
+            }
+
+            .terms-info p {
+                color: var(--pico-muted-color);
+                font-size: 0.95rem;
+                line-height: 1.6;
+                text-align: center;
+                margin: 0;
+            }
+
+            /* 반응형 디자인 */
+            @media (max-width: 768px) {
+                .auth-container {
+                    grid-template-columns: 1fr;
+                    gap: 2rem;
+                    padding: 1rem;
+                    margin: 1rem auto;
+                }
+
+                .auth-card {
+                    padding: 2rem;
+                }
+
+                .auth-header h1 {
+                    font-size: 1.8rem;
+                }
+
+                .info-card {
+                    padding: 2rem;
+                }
+
+                .form-group input {
+                    padding: 0.875rem 1rem;
+                    font-size: 1rem;
+                }
+
+                .auth-submit {
+                    padding: 0.875rem 1.25rem;
+                    font-size: 1.1rem;
+                }
+            }
+
+            /* 다크 모드 지원 */
+            @media (prefers-color-scheme: dark) {
+                .auth-card {
+                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+                }
+
+                .alert-error {
+                    background: rgba(220, 53, 69, 0.1);
+                    border-color: rgba(220, 53, 69, 0.3);
+                    color: #ff6b6b;
+                }
+            }
+        </style>
+    `
+}) %>
