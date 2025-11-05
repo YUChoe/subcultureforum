@@ -588,6 +588,73 @@ router.delete('/subforum/:subforumId/attachment/:attachmentId', async (req, res)
     }
 });
 
+// 검색 페이지
+router.get('/search', async (req, res) => {
+    try {
+        const query = req.query.q || '';
+        const subforumId = req.query.subforum ? parseInt(req.query.subforum) : null;
+        const sortBy = req.query.sort || 'relevance';
+        const page = parseInt(req.query.page) || 1;
+
+        // 서브포럼 목록 조회 (필터 옵션용)
+        const subforums = await forumService.getSubforums();
+
+        let searchResults = null;
+        let selectedSubforum = null;
+
+        if (query.trim().length > 0) {
+            // 검색 실행
+            searchResults = await forumService.searchPosts(query, {
+                subforumId: subforumId,
+                page: page,
+                limit: 20,
+                sortBy: sortBy
+            });
+
+            // 선택된 서브포럼 정보 조회
+            if (subforumId) {
+                selectedSubforum = await forumService.getSubforumById(subforumId);
+            }
+        }
+
+        res.render('pages/forum/search', {
+            title: query ? `"${query}" 검색 결과` : '포럼 검색',
+            query: query,
+            subforums: subforums,
+            selectedSubforum: selectedSubforum,
+            searchResults: searchResults,
+            sortBy: sortBy,
+            currentPage: page
+        });
+    } catch (error) {
+        console.error('검색 페이지 오류:', error);
+        res.status(500).render('pages/error', {
+            title: '서버 오류',
+            error: {
+                status: 500,
+                message: '검색 중 오류가 발생했습니다.'
+            }
+        });
+    }
+});
+
+// 검색 제안어 API
+router.get('/search/suggestions', async (req, res) => {
+    try {
+        const query = req.query.q || '';
+
+        if (query.trim().length < 2) {
+            return res.json({ suggestions: [] });
+        }
+
+        const suggestions = await forumService.getSearchSuggestions(query, 5);
+        res.json({ suggestions: suggestions });
+    } catch (error) {
+        console.error('검색 제안어 API 오류:', error);
+        res.status(500).json({ error: '검색 제안어 조회 중 오류가 발생했습니다.' });
+    }
+});
+
 // 파일 업로드 에러 처리 미들웨어
 router.use(handleUploadError);
 

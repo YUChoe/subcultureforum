@@ -350,6 +350,7 @@ const checkRoutePermission = (req, res, next) => {
         '/auth/register',
         '/auth/logout',
         '/forum/category',
+        '/forum/search',
         '/search'
     ];
 
@@ -359,7 +360,9 @@ const checkRoutePermission = (req, res, next) => {
         /^\/forum\/subforum\/\d+\/post\/\d+$/, // 게시글 조회 (서브포럼/게시글)
         /^\/forum\/subforum\/\d+\/posts$/, // 서브포럼 내 게시글 목록
         /^\/forum\/subforum\/\d+\/posts\/page\/\d+$/, // 페이지네이션
-        /^\/forum\/subforum\/\d+\/attachment\/\d+$/ // 첨부파일 다운로드
+        /^\/forum\/subforum\/\d+\/attachment\/\d+$/, // 첨부파일 다운로드
+        /^\/forum\/search/, // 검색 페이지 및 API
+        /^\/forum\/search\/suggestions/ // 검색 제안어 API
     ];
 
     // 공개 조회 패턴 확인

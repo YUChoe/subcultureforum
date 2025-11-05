@@ -1320,6 +1320,451 @@ class ForumService {
             return false;
         }
     }
+
+    /**
+     * FTS5를 사용한 게시글 전문 검색
+     * @param {string} query - 검색어
+     * @param {Object} options - 검색 옵션
+     * @param {number|null} options.subforumId - 특정 서브포럼 ID (null이면 전체 검색)
+     * @param {number} options.page - 페이지 번호 (기본값: 1)
+     * @param {number} options.limit - 페이지당 결과 수 (기본값: 20)
+     * @param {string} options.sortBy - 정렬 방식 ('relevance', 'created_at', 'view_count')
+     * @returns {Promise<Object>} 검색 결과와 페이지네이션 정보
+     */
+    async searchPosts(query, options = {}) {
+        const {
+            subforumId = null,
+            page = 1,
+            limit = 20,
+            sortBy = 'relevance'
+        } = options;
+
+        if (!query || query.trim().length === 0) {
+            return {
+                posts: [],
+                pagination: {
+                    current_page: page,
+                    total_pages: 0,
+                    total_count: 0,
+                    limit: limit,
+                    has_next: false,
+                    has_prev: false
+                },
+                search_info: {
+                    query: query,
+                    subforum_id: subforumId,
+                    sort_by: sortBy
+                }
+            };
+        }
+
+        try {
+            const searchQuery = query.trim();
+            const offset = (page - 1) * limit;
+
+            // 정렬 방식 결정
+            let orderClause;
+            switch (sortBy) {
+                case 'created_at':
+                    orderClause = 'ORDER BY p.created_at DESC';
+                    break;
+                case 'view_count':
+                    orderClause = 'ORDER BY p.view_count DESC, p.created_at DESC';
+                    break;
+                case 'relevance':
+                default:
+                    orderClause = 'ORDER BY posts_fts.rank, p.created_at DESC';
+                    break;
+            }
+
+            if (subforumId) {
+                // 특정 서브포럼에서 검색
+                return await this.searchInSubforum(searchQuery, subforumId, {
+                    page,
+                    limit,
+                    offset,
+                    orderClause
+                });
+            } else {
+                // 전체 서브포럼에서 검색
+                return await this.searchInAllSubforums(searchQuery, {
+                    page,
+                    limit,
+                    offset,
+                    orderClause,
+                    sortBy
+                });
+            }
+        } catch (error) {
+            console.error('게시글 검색 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 특정 서브포럼에서 검색
+     * @param {string} searchQuery - 검색어
+     * @param {number} subforumId - 서브포럼 ID
+     * @param {Object} options - 검색 옵션
+     * @returns {Promise<Object>} 검색 결과
+     */
+    async searchInSubforum(searchQuery, subforumId, options) {
+        const { page, limit, offset, orderClause } = options;
+
+        try {
+            const forumDB = await this.dbManager.getForumDB(subforumId);
+            const configDB = this.dbManager.getConfigDB();
+
+            // 서브포럼 정보 조회
+            const subforum = await this.getSubforumById(subforumId);
+            if (!subforum) {
+                throw new Error('서브포럼을 찾을 수 없습니다.');
+            }
+
+            // FTS5 검색 쿼리 실행
+            const searchResults = await this.dbManager.allQuery(
+                forumDB,
+                `SELECT
+                    p.id,
+                    p.title,
+                    p.content,
+                    p.view_count,
+                    p.created_at,
+                    p.updated_at,
+                    p.last_comment_at,
+                    p.user_id,
+                    p.category_id,
+                    posts_fts.rank,
+                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
+                 FROM posts_fts
+                 JOIN posts p ON posts_fts.rowid = p.id
+                 WHERE posts_fts MATCH ? AND p.category_id = ?
+                 ${orderClause}
+                 LIMIT ? OFFSET ?`,
+                [searchQuery, subforumId, limit, offset]
+            );
+
+            // 전체 검색 결과 수 조회
+            const totalCountResult = await this.dbManager.getQuery(
+                forumDB,
+                `SELECT COUNT(*) as count
+                 FROM posts_fts
+                 JOIN posts p ON posts_fts.rowid = p.id
+                 WHERE posts_fts MATCH ? AND p.category_id = ?`,
+                [searchQuery, subforumId]
+            );
+
+            // 사용자 정보 추가
+            const postsWithUserInfo = await Promise.all(
+                searchResults.map(async (post) => {
+                    if (post.user_id) {
+                        const user = await this.dbManager.getQuery(
+                            configDB,
+                            'SELECT username, role FROM users WHERE id = ?',
+                            [post.user_id]
+                        );
+                        return {
+                            ...post,
+                            username: user?.username || '알 수 없음',
+                            role: user?.role || 'user'
+                        };
+                    }
+                    return {
+                        ...post,
+                        username: '알 수 없음',
+                        role: 'user'
+                    };
+                })
+            );
+
+            // 검색 결과에 미리보기 및 하이라이트 추가
+            const postsWithPreview = postsWithUserInfo.map(post => ({
+                ...post,
+                content_preview: this.generateSearchPreview(post.content, searchQuery, 200),
+                title_highlight: this.highlightSearchTerms(post.title, searchQuery),
+                subforum_name: subforum.name
+            }));
+
+            const totalCount = totalCountResult?.count || 0;
+            const totalPages = Math.ceil(totalCount / limit);
+
+            return {
+                posts: postsWithPreview,
+                pagination: {
+                    current_page: page,
+                    total_pages: totalPages,
+                    total_count: totalCount,
+                    limit: limit,
+                    has_next: page < totalPages,
+                    has_prev: page > 1
+                },
+                search_info: {
+                    query: searchQuery,
+                    subforum_id: subforumId,
+                    subforum_name: subforum.name,
+                    sort_by: options.sortBy || 'relevance'
+                }
+            };
+        } catch (error) {
+            console.error(`서브포럼 ${subforumId} 검색 실패:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 전체 서브포럼에서 검색
+     * @param {string} searchQuery - 검색어
+     * @param {Object} options - 검색 옵션
+     * @returns {Promise<Object>} 검색 결과
+     */
+    async searchInAllSubforums(searchQuery, options) {
+        const { page, limit, offset, orderClause, sortBy } = options;
+
+        try {
+            const subforums = await this.getSubforums();
+            const allResults = [];
+
+            // 각 서브포럼에서 검색 실행
+            for (const subforum of subforums) {
+                try {
+                    const forumDB = await this.dbManager.getForumDB(subforum.id);
+                    const configDB = this.dbManager.getConfigDB();
+
+                    // FTS5 검색 쿼리 실행 (페이지네이션 없이 모든 결과 조회)
+                    const searchResults = await this.dbManager.allQuery(
+                        forumDB,
+                        `SELECT
+                            p.id,
+                            p.title,
+                            p.content,
+                            p.view_count,
+                            p.created_at,
+                            p.updated_at,
+                            p.last_comment_at,
+                            p.user_id,
+                            p.category_id,
+                            posts_fts.rank,
+                            (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
+                         FROM posts_fts
+                         JOIN posts p ON posts_fts.rowid = p.id
+                         WHERE posts_fts MATCH ? AND p.category_id = ?
+                         ${orderClause}`,
+                        [searchQuery, subforum.id]
+                    );
+
+                    // 사용자 정보 추가
+                    const postsWithUserInfo = await Promise.all(
+                        searchResults.map(async (post) => {
+                            if (post.user_id) {
+                                const user = await this.dbManager.getQuery(
+                                    configDB,
+                                    'SELECT username, role FROM users WHERE id = ?',
+                                    [post.user_id]
+                                );
+                                return {
+                                    ...post,
+                                    username: user?.username || '알 수 없음',
+                                    role: user?.role || 'user'
+                                };
+                            }
+                            return {
+                                ...post,
+                                username: '알 수 없음',
+                                role: 'user'
+                            };
+                        })
+                    );
+
+                    // 서브포럼 정보 추가
+                    const postsWithSubforum = postsWithUserInfo.map(post => ({
+                        ...post,
+                        subforum_name: subforum.name,
+                        subforum_id: subforum.id
+                    }));
+
+                    allResults.push(...postsWithSubforum);
+                } catch (error) {
+                    console.warn(`서브포럼 ${subforum.id} 검색 실패:`, error);
+                }
+            }
+
+            // 전체 결과를 정렬 방식에 따라 정렬
+            let sortedResults;
+            switch (sortBy) {
+                case 'created_at':
+                    sortedResults = allResults.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    break;
+                case 'view_count':
+                    sortedResults = allResults.sort((a, b) => {
+                        if (b.view_count !== a.view_count) {
+                            return b.view_count - a.view_count;
+                        }
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    });
+                    break;
+                case 'relevance':
+                default:
+                    sortedResults = allResults.sort((a, b) => {
+                        if (a.rank !== b.rank) {
+                            return a.rank - b.rank; // FTS5 rank는 낮을수록 관련도가 높음
+                        }
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    });
+                    break;
+            }
+
+            // 페이지네이션 적용
+            const paginatedResults = sortedResults.slice(offset, offset + limit);
+
+            // 검색 결과에 미리보기 및 하이라이트 추가
+            const postsWithPreview = paginatedResults.map(post => ({
+                ...post,
+                content_preview: this.generateSearchPreview(post.content, searchQuery, 200),
+                title_highlight: this.highlightSearchTerms(post.title, searchQuery)
+            }));
+
+            const totalCount = sortedResults.length;
+            const totalPages = Math.ceil(totalCount / limit);
+
+            return {
+                posts: postsWithPreview,
+                pagination: {
+                    current_page: page,
+                    total_pages: totalPages,
+                    total_count: totalCount,
+                    limit: limit,
+                    has_next: page < totalPages,
+                    has_prev: page > 1
+                },
+                search_info: {
+                    query: searchQuery,
+                    subforum_id: null,
+                    subforum_name: '전체 포럼',
+                    sort_by: sortBy,
+                    searched_subforums: subforums.length
+                }
+            };
+        } catch (error) {
+            console.error('전체 서브포럼 검색 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 검색어가 포함된 내용 미리보기 생성
+     * @param {string} content - 원본 내용
+     * @param {string} searchQuery - 검색어
+     * @param {number} maxLength - 최대 길이
+     * @returns {string} 미리보기 텍스트
+     */
+    generateSearchPreview(content, searchQuery, maxLength = 200) {
+        if (!content) {
+            return '';
+        }
+
+        // 마크다운 및 HTML 태그 제거
+        const plainText = extractPlainText(content);
+
+        // 검색어 위치 찾기
+        const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+        let bestMatch = -1;
+        let bestMatchTerm = '';
+
+        for (const term of searchTerms) {
+            const index = plainText.toLowerCase().indexOf(term);
+            if (index !== -1 && (bestMatch === -1 || index < bestMatch)) {
+                bestMatch = index;
+                bestMatchTerm = term;
+            }
+        }
+
+        if (bestMatch === -1) {
+            // 검색어가 없으면 처음부터 자르기
+            return plainText.length <= maxLength ? plainText : plainText.substring(0, maxLength) + '...';
+        }
+
+        // 검색어 주변 텍스트 추출
+        const start = Math.max(0, bestMatch - Math.floor(maxLength / 3));
+        const end = Math.min(plainText.length, start + maxLength);
+
+        let preview = plainText.substring(start, end);
+
+        if (start > 0) {
+            preview = '...' + preview;
+        }
+        if (end < plainText.length) {
+            preview = preview + '...';
+        }
+
+        return preview;
+    }
+
+    /**
+     * 검색어 하이라이트 처리
+     * @param {string} text - 원본 텍스트
+     * @param {string} searchQuery - 검색어
+     * @returns {string} 하이라이트된 텍스트
+     */
+    highlightSearchTerms(text, searchQuery) {
+        if (!text || !searchQuery) {
+            return text;
+        }
+
+        const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+        let highlightedText = text;
+
+        for (const term of searchTerms) {
+            const regex = new RegExp(`(${term})`, 'gi');
+            highlightedText = highlightedText.replace(regex, '<mark>$1</mark>');
+        }
+
+        return highlightedText;
+    }
+
+    /**
+     * 검색 제안어 생성 (자주 검색되는 키워드 기반)
+     * @param {string} partialQuery - 부분 검색어
+     * @param {number} limit - 제안 개수 제한
+     * @returns {Promise<Array>} 검색 제안어 목록
+     */
+    async getSearchSuggestions(partialQuery, limit = 5) {
+        if (!partialQuery || partialQuery.trim().length < 2) {
+            return [];
+        }
+
+        try {
+            const suggestions = [];
+            const subforums = await this.getSubforums();
+
+            // 각 서브포럼에서 제목 기반 제안어 검색
+            for (const subforum of subforums) {
+                try {
+                    const forumDB = await this.dbManager.getForumDB(subforum.id);
+
+                    const titleSuggestions = await this.dbManager.allQuery(
+                        forumDB,
+                        `SELECT DISTINCT title
+                         FROM posts
+                         WHERE title LIKE ? AND category_id = ?
+                         ORDER BY created_at DESC
+                         LIMIT ?`,
+                        [`%${partialQuery}%`, subforum.id, Math.ceil(limit / subforums.length)]
+                    );
+
+                    suggestions.push(...titleSuggestions.map(row => row.title));
+                } catch (error) {
+                    console.warn(`서브포럼 ${subforum.id} 검색 제안어 조회 실패:`, error);
+                }
+            }
+
+            // 중복 제거 및 길이 제한
+            const uniqueSuggestions = [...new Set(suggestions)];
+            return uniqueSuggestions.slice(0, limit);
+        } catch (error) {
+            console.error('검색 제안어 생성 실패:', error);
+            return [];
+        }
+    }
 }
 
 module.exports = ForumService;

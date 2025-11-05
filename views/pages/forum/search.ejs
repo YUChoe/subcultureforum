@@ -1,0 +1,424 @@
+<%- include('../../layouts/main', {
+    title: title,
+    body: `
+        <div class="container">
+            <!-- 검색 헤더 -->
+            <div class="search-header">
+                <h1>포럼 검색</h1>
+                <p class="text-muted">게시글 제목과 내용에서 검색합니다</p>
+            </div>
+
+            <!-- 검색 폼 -->
+            <form method="GET" action="/forum/search" class="search-form">
+                <div class="grid">
+                    <div>
+                        <input
+                            type="text"
+                            name="q"
+                            placeholder="검색어를 입력하세요..."
+                            value="${query || ''}"
+                            id="search-input"
+                            autocomplete="off"
+                        >
+                        <div id="search-suggestions" class="search-suggestions" style="display: none;"></div>
+                    </div>
+                    <div>
+                        <select name="subforum">
+                            <option value="">전체 포럼</option>
+                            ${subforums.map(subforum => `
+                                <option value="${subforum.id}" ${selectedSubforum && selectedSubforum.id === subforum.id ? 'selected' : ''}>
+                                    ${subforum.name}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <select name="sort">
+                            <option value="relevance" ${sortBy === 'relevance' ? 'selected' : ''}>관련도순</option>
+                            <option value="created_at" ${sortBy === 'created_at' ? 'selected' : ''}>최신순</option>
+                            <option value="view_count" ${sortBy === 'view_count' ? 'selected' : ''}>조회수순</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" class="search-btn">
+                            <i class="icon-search"></i> 검색
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            ${searchResults ? `
+                <!-- 검색 결과 정보 -->
+                <div class="search-info">
+                    <h2>검색 결과</h2>
+                    <p class="search-meta">
+                        <strong>"${query}"</strong>에 대한 검색 결과
+                        ${searchResults.search_info.subforum_name ? `(${searchResults.search_info.subforum_name})` : ''}
+                        - 총 <strong>${searchResults.pagination.total_count}</strong>개 발견
+                    </p>
+                </div>
+
+                ${searchResults.posts.length > 0 ? `
+                    <!-- 검색 결과 목록 -->
+                    <div class="search-results">
+                        ${searchResults.posts.map(post => `
+                            <article class="search-result-item">
+                                <div class="result-header">
+                                    <h3 class="result-title">
+                                        <a href="/forum/subforum/${post.category_id}/post/${post.id}">
+                                            ${post.title_highlight || post.title}
+                                        </a>
+                                    </h3>
+                                    <div class="result-meta">
+                                        <span class="subforum-badge">${post.subforum_name}</span>
+                                        <span class="author">by ${post.username}</span>
+                                        <span class="date">${new Date(post.created_at).toLocaleDateString('ko-KR')}</span>
+                                        <span class="stats">
+                                            조회 ${post.view_count} · 댓글 ${post.comment_count}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="result-content">
+                                    <p>${post.content_preview}</p>
+                                </div>
+                            </article>
+                        `).join('')}
+                    </div>
+
+                    <!-- 페이지네이션 -->
+                    ${searchResults.pagination.total_pages > 1 ? `
+                        <nav class="pagination-nav">
+                            <div class="pagination">
+                                ${searchResults.pagination.has_prev ? `
+                                    <a href="?q=${encodeURIComponent(query)}&subforum=${selectedSubforum?.id || ''}&sort=${sortBy}&page=${searchResults.pagination.current_page - 1}"
+                                       class="pagination-btn">이전</a>
+                                ` : ''}
+
+                                <span class="pagination-info">
+                                    ${searchResults.pagination.current_page} / ${searchResults.pagination.total_pages}
+                                </span>
+
+                                ${searchResults.pagination.has_next ? `
+                                    <a href="?q=${encodeURIComponent(query)}&subforum=${selectedSubforum?.id || ''}&sort=${sortBy}&page=${searchResults.pagination.current_page + 1}"
+                                       class="pagination-btn">다음</a>
+                                ` : ''}
+                            </div>
+                        </nav>
+                    ` : ''}
+                ` : `
+                    <!-- 검색 결과 없음 -->
+                    <div class="no-results">
+                        <h3>검색 결과가 없습니다</h3>
+                        <p>"${query}"에 대한 검색 결과를 찾을 수 없습니다.</p>
+                        <ul class="search-tips">
+                            <li>다른 키워드로 검색해보세요</li>
+                            <li>검색어의 철자를 확인해보세요</li>
+                            <li>더 일반적인 키워드를 사용해보세요</li>
+                            <li>전체 포럼에서 검색해보세요</li>
+                        </ul>
+                    </div>
+                `}
+            ` : query ? `
+                <div class="search-placeholder">
+                    <p>검색어를 입력하고 검색 버튼을 클릭하세요.</p>
+                </div>
+            ` : `
+                <!-- 검색 도움말 -->
+                <div class="search-help">
+                    <h3>검색 도움말</h3>
+                    <div class="grid">
+                        <div>
+                            <h4>검색 팁</h4>
+                            <ul>
+                                <li>여러 단어로 검색하면 더 정확한 결과를 얻을 수 있습니다</li>
+                                <li>특정 포럼에서만 검색하려면 포럼을 선택하세요</li>
+                                <li>정렬 방식을 변경하여 원하는 순서로 결과를 확인하세요</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4>인기 검색어</h4>
+                            <div class="popular-searches">
+                                <span class="search-tag">게임</span>
+                                <span class="search-tag">영화</span>
+                                <span class="search-tag">리뷰</span>
+                                <span class="search-tag">추천</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}
+        </div>
+
+        <style>
+            .search-header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+
+            .search-form {
+                margin-bottom: 2rem;
+                padding: 1.5rem;
+                background: var(--pico-card-background-color);
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+            }
+
+            .search-form .grid {
+                grid-template-columns: 2fr 1fr 1fr auto;
+                gap: 1rem;
+                align-items: end;
+            }
+
+            .search-btn {
+                white-space: nowrap;
+                margin: 0;
+            }
+
+            .search-suggestions {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--pico-card-background-color);
+                border: 1px solid var(--pico-border-color);
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+                z-index: 1000;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .suggestion-item {
+                padding: 0.5rem 1rem;
+                cursor: pointer;
+                border-bottom: 1px solid var(--pico-border-color);
+            }
+
+            .suggestion-item:hover {
+                background: var(--pico-primary-background);
+            }
+
+            .suggestion-item:last-child {
+                border-bottom: none;
+            }
+
+            .search-info {
+                margin-bottom: 1.5rem;
+            }
+
+            .search-meta {
+                color: var(--pico-muted-color);
+                margin: 0.5rem 0;
+            }
+
+            .search-result-item {
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+                background: var(--pico-card-background-color);
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+            }
+
+            .result-header {
+                margin-bottom: 1rem;
+            }
+
+            .result-title {
+                margin: 0 0 0.5rem 0;
+            }
+
+            .result-title a {
+                text-decoration: none;
+                color: var(--pico-primary);
+            }
+
+            .result-title a:hover {
+                text-decoration: underline;
+            }
+
+            .result-meta {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+                font-size: 0.875rem;
+                color: var(--pico-muted-color);
+            }
+
+            .subforum-badge {
+                background: var(--pico-primary-background);
+                color: var(--pico-primary);
+                padding: 0.25rem 0.5rem;
+                border-radius: var(--pico-border-radius);
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+
+            .result-content p {
+                margin: 0;
+                line-height: 1.6;
+            }
+
+            .no-results {
+                text-align: center;
+                padding: 3rem 1rem;
+            }
+
+            .search-tips {
+                text-align: left;
+                display: inline-block;
+                margin-top: 1rem;
+            }
+
+            .search-help {
+                padding: 2rem;
+                background: var(--pico-card-background-color);
+                border-radius: var(--pico-border-radius);
+                box-shadow: var(--pico-card-box-shadow);
+            }
+
+            .popular-searches {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+            }
+
+            .search-tag {
+                background: var(--pico-secondary-background);
+                color: var(--pico-secondary);
+                padding: 0.25rem 0.75rem;
+                border-radius: 1rem;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+
+            .search-tag:hover {
+                background: var(--pico-secondary);
+                color: var(--pico-secondary-inverse);
+            }
+
+            .pagination-nav {
+                margin-top: 2rem;
+                text-align: center;
+            }
+
+            .pagination {
+                display: inline-flex;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .pagination-btn {
+                padding: 0.5rem 1rem;
+                background: var(--pico-primary);
+                color: var(--pico-primary-inverse);
+                text-decoration: none;
+                border-radius: var(--pico-border-radius);
+                transition: all 0.2s ease;
+            }
+
+            .pagination-btn:hover {
+                background: var(--pico-primary-hover);
+            }
+
+            .pagination-info {
+                font-weight: 600;
+                color: var(--pico-muted-color);
+            }
+
+            /* 하이라이트 스타일 */
+            mark {
+                background: var(--pico-primary-background);
+                color: var(--pico-primary);
+                padding: 0.1rem 0.2rem;
+                border-radius: 0.2rem;
+            }
+
+            /* 반응형 */
+            @media (max-width: 768px) {
+                .search-form .grid {
+                    grid-template-columns: 1fr;
+                    gap: 1rem;
+                }
+
+                .result-meta {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 0.5rem;
+                }
+            }
+        </style>
+
+        <script>
+            // 검색 제안어 기능
+            const searchInput = document.getElementById('search-input');
+            const suggestionsContainer = document.getElementById('search-suggestions');
+            let suggestionTimeout;
+
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+
+                clearTimeout(suggestionTimeout);
+
+                if (query.length < 2) {
+                    suggestionsContainer.style.display = 'none';
+                    return;
+                }
+
+                suggestionTimeout = setTimeout(() => {
+                    fetch('/forum/search/suggestions?q=' + encodeURIComponent(query))
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.suggestions && data.suggestions.length > 0) {
+                                suggestionsContainer.innerHTML = data.suggestions
+                                    .map(suggestion =>
+                                        '<div class="suggestion-item" onclick="selectSuggestion(\'' +
+                                        suggestion.replace(/'/g, "\\'") + '\')">' +
+                                        suggestion + '</div>'
+                                    ).join('');
+                                suggestionsContainer.style.display = 'block';
+                            } else {
+                                suggestionsContainer.style.display = 'none';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('검색 제안어 조회 실패:', error);
+                            suggestionsContainer.style.display = 'none';
+                        });
+                }, 300);
+            });
+
+            // 검색 제안어 선택
+            function selectSuggestion(suggestion) {
+                searchInput.value = suggestion;
+                suggestionsContainer.style.display = 'none';
+            }
+
+            // 외부 클릭 시 제안어 숨기기
+            document.addEventListener('click', function(event) {
+                if (!searchInput.contains(event.target) && !suggestionsContainer.contains(event.target)) {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+
+            // 인기 검색어 클릭 이벤트
+            document.querySelectorAll('.search-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    searchInput.value = this.textContent;
+                    searchInput.focus();
+                });
+            });
+
+            // 검색 폼 제출 시 빈 값 검증
+            document.querySelector('.search-form').addEventListener('submit', function(e) {
+                const query = searchInput.value.trim();
+                if (query.length === 0) {
+                    e.preventDefault();
+                    alert('검색어를 입력해주세요.');
+                    searchInput.focus();
+                }
+            });
+        </script>
+    `
+}) %>

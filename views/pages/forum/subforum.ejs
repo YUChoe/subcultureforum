@@ -26,6 +26,17 @@
                 </div>
             </header>
 
+            <!-- 검색 및 컨트롤 -->
+            <section class="forum-search">
+                <form method="GET" action="/forum/search" class="search-form">
+                    <fieldset role="group">
+                        <input type="text" name="q" placeholder="이 포럼에서 검색..." value="">
+                        <input type="hidden" name="subforum" value="${subforum.id}">
+                        <button type="submit">검색</button>
+                    </fieldset>
+                </form>
+            </section>
+
             <!-- 게시글 작성 및 정렬 옵션 -->
             <section class="forum-controls">
                 <div class="controls-left">
@@ -140,6 +151,14 @@
                 margin-top: 0.5rem;
                 font-size: 0.9rem;
                 color: var(--pico-muted-color);
+            }
+
+            .forum-search {
+                margin-bottom: 1rem;
+            }
+
+            .search-form fieldset {
+                margin: 0;
             }
 
             .forum-controls {
