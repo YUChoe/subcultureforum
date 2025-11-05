@@ -330,10 +330,10 @@ const routePermissions = {
     '/category/*/moderate/*': 'moderator',
 
     // 로그인 사용자 전용 라우트 (서브포럼 구조)
-    '/category/*/post/new': 'user',
-    '/category/*/post/*/edit': 'user',
-    '/category/*/comment/new': 'user',
-    '/category/*/comment/*/edit': 'user',
+    '/forum/subforum/*/post/new': 'user',
+    '/forum/subforum/*/post/*/edit': 'user',
+    '/forum/subforum/*/comment/new': 'user',
+    '/forum/subforum/*/comment/*/edit': 'user',
     '/profile': 'user',
     '/profile/*': 'user'
 };
@@ -355,10 +355,11 @@ const checkRoutePermission = (req, res, next) => {
 
     // 서브포럼 및 게시글 조회는 공개
     const publicViewPatterns = [
-        /^\/forum\/category\/\d+$/, // 카테고리 목록 조회
-        /^\/forum\/category\/\d+\/post\/\d+$/, // 게시글 조회 (서브포럼/게시글)
-        /^\/forum\/category\/\d+\/posts$/, // 카테고리 내 게시글 목록
-        /^\/forum\/category\/\d+\/posts\/page\/\d+$/ // 페이지네이션
+        /^\/forum\/subforum\/\d+$/, // 서브포럼 목록 조회
+        /^\/forum\/subforum\/\d+\/post\/\d+$/, // 게시글 조회 (서브포럼/게시글)
+        /^\/forum\/subforum\/\d+\/posts$/, // 서브포럼 내 게시글 목록
+        /^\/forum\/subforum\/\d+\/posts\/page\/\d+$/, // 페이지네이션
+        /^\/forum\/subforum\/\d+\/attachment\/\d+$/ // 첨부파일 다운로드
     ];
 
     // 공개 조회 패턴 확인

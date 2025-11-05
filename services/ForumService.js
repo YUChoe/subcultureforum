@@ -394,17 +394,38 @@ class ForumService {
                         p.view_count,
                         p.created_at,
                         p.category_id,
-                        u.username,
+                        p.user_id,
                         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
                      FROM posts p
-                     LEFT JOIN users u ON p.user_id = u.id
                      WHERE p.category_id = ? AND p.created_at >= ?
                      ORDER BY p.view_count DESC, p.created_at DESC
                      LIMIT ?`,
                     [subforumId, cutoffDateStr, limit]
                 );
 
-                return posts;
+                // 사용자 정보를 config DB에서 별도로 조회
+                const configDB = this.dbManager.getConfigDB();
+                const postsWithUserInfo = await Promise.all(
+                    posts.map(async (post) => {
+                        if (post.user_id) {
+                            const user = await this.dbManager.getQuery(
+                                configDB,
+                                'SELECT username FROM users WHERE id = ?',
+                                [post.user_id]
+                            );
+                            return {
+                                ...post,
+                                username: user?.username || '알 수 없음'
+                            };
+                        }
+                        return {
+                            ...post,
+                            username: '알 수 없음'
+                        };
+                    })
+                );
+
+                return postsWithUserInfo;
             } else {
                 // 전체 서브포럼의 인기 게시글
                 const subforums = await this.getSubforums();
@@ -422,18 +443,39 @@ class ForumService {
                                 p.view_count,
                                 p.created_at,
                                 p.category_id,
-                                u.username,
+                                p.user_id,
                                 (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
                              FROM posts p
-                             LEFT JOIN users u ON p.user_id = u.id
                              WHERE p.category_id = ? AND p.created_at >= ?
                              ORDER BY p.view_count DESC
                              LIMIT ?`,
                             [subforum.id, cutoffDateStr, limit]
                         );
 
+                        // 사용자 정보를 config DB에서 별도로 조회
+                        const configDB = this.dbManager.getConfigDB();
+                        const postsWithUserInfo = await Promise.all(
+                            posts.map(async (post) => {
+                                if (post.user_id) {
+                                    const user = await this.dbManager.getQuery(
+                                        configDB,
+                                        'SELECT username FROM users WHERE id = ?',
+                                        [post.user_id]
+                                    );
+                                    return {
+                                        ...post,
+                                        username: user?.username || '알 수 없음'
+                                    };
+                                }
+                                return {
+                                    ...post,
+                                    username: '알 수 없음'
+                                };
+                            })
+                        );
+
                         // 서브포럼 정보 추가
-                        const postsWithSubforum = posts.map(post => ({
+                        const postsWithSubforum = postsWithUserInfo.map(post => ({
                             ...post,
                             subforum_name: subforum.name
                         }));
@@ -475,21 +517,52 @@ class ForumService {
                         p.created_at,
                         p.last_comment_at,
                         p.category_id,
-                        u.username,
+                        p.user_id,
                         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count,
-                        (SELECT u2.username FROM comments c2
-                         JOIN users u2 ON c2.user_id = u2.id
+                        (SELECT c2.user_id FROM comments c2
                          WHERE c2.post_id = p.id
-                         ORDER BY c2.created_at DESC LIMIT 1) as last_commenter
+                         ORDER BY c2.created_at DESC LIMIT 1) as last_commenter_id
                      FROM posts p
-                     LEFT JOIN users u ON p.user_id = u.id
                      WHERE p.category_id = ? AND p.last_comment_at IS NOT NULL
                      ORDER BY p.last_comment_at DESC
                      LIMIT ?`,
                     [subforumId, limit]
                 );
 
-                return posts;
+                // 사용자 정보를 config DB에서 별도로 조회
+                const configDB = this.dbManager.getConfigDB();
+                const postsWithUserInfo = await Promise.all(
+                    posts.map(async (post) => {
+                        let username = '알 수 없음';
+                        let lastCommenter = '알 수 없음';
+
+                        if (post.user_id) {
+                            const user = await this.dbManager.getQuery(
+                                configDB,
+                                'SELECT username FROM users WHERE id = ?',
+                                [post.user_id]
+                            );
+                            username = user?.username || '알 수 없음';
+                        }
+
+                        if (post.last_commenter_id) {
+                            const commenterUser = await this.dbManager.getQuery(
+                                configDB,
+                                'SELECT username FROM users WHERE id = ?',
+                                [post.last_commenter_id]
+                            );
+                            lastCommenter = commenterUser?.username || '알 수 없음';
+                        }
+
+                        return {
+                            ...post,
+                            username: username,
+                            last_commenter: lastCommenter
+                        };
+                    })
+                );
+
+                return postsWithUserInfo;
             } else {
                 // 전체 서브포럼의 최근 활동 게시글
                 const subforums = await this.getSubforums();
@@ -507,22 +580,53 @@ class ForumService {
                                 p.created_at,
                                 p.last_comment_at,
                                 p.category_id,
-                                u.username,
+                                p.user_id,
                                 (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count,
-                                (SELECT u2.username FROM comments c2
-                                 JOIN users u2 ON c2.user_id = u2.id
+                                (SELECT c2.user_id FROM comments c2
                                  WHERE c2.post_id = p.id
-                                 ORDER BY c2.created_at DESC LIMIT 1) as last_commenter
+                                 ORDER BY c2.created_at DESC LIMIT 1) as last_commenter_id
                              FROM posts p
-                             LEFT JOIN users u ON p.user_id = u.id
                              WHERE p.category_id = ? AND p.last_comment_at IS NOT NULL
                              ORDER BY p.last_comment_at DESC
                              LIMIT ?`,
                             [subforum.id, Math.ceil(limit / subforums.length)]
                         );
 
+                        // 사용자 정보를 config DB에서 별도로 조회
+                        const configDB = this.dbManager.getConfigDB();
+                        const postsWithUserInfo = await Promise.all(
+                            posts.map(async (post) => {
+                                let username = '알 수 없음';
+                                let lastCommenter = '알 수 없음';
+
+                                if (post.user_id) {
+                                    const user = await this.dbManager.getQuery(
+                                        configDB,
+                                        'SELECT username FROM users WHERE id = ?',
+                                        [post.user_id]
+                                    );
+                                    username = user?.username || '알 수 없음';
+                                }
+
+                                if (post.last_commenter_id) {
+                                    const commenterUser = await this.dbManager.getQuery(
+                                        configDB,
+                                        'SELECT username FROM users WHERE id = ?',
+                                        [post.last_commenter_id]
+                                    );
+                                    lastCommenter = commenterUser?.username || '알 수 없음';
+                                }
+
+                                return {
+                                    ...post,
+                                    username: username,
+                                    last_commenter: lastCommenter
+                                };
+                            })
+                        );
+
                         // 서브포럼 정보 추가
-                        const postsWithSubforum = posts.map(post => ({
+                        const postsWithSubforum = postsWithUserInfo.map(post => ({
                             ...post,
                             subforum_name: subforum.name
                         }));
