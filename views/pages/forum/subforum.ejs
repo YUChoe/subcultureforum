@@ -73,12 +73,10 @@
                         ${posts.map(post => `
                             <article class="post-row ${post.is_recent ? 'recent' : ''}">
                                 <div class="post-title">
-                                    <h3>
-                                        <a href="/forum/subforum/${subforum.id}/post/${post.id}">
-                                            ${post.title}
-                                            ${post.has_recent_comments ? '<span class="badge">NEW</span>' : ''}
-                                        </a>
-                                    </h3>
+                                    <a href="/forum/subforum/${subforum.id}/post/${post.id}" class="post-title-link">
+                                        ${post.title}
+                                        ${post.has_recent_comments ? '<span class="badge">NEW</span>' : ''}
+                                    </a>
                                     ${post.content_preview ?
                                         '<p class="post-preview">' + post.content_preview + '</p>' : ''
                                     }
@@ -313,21 +311,18 @@
                 min-width: 0; /* 텍스트 오버플로우 방지 */
             }
 
-            .post-title h3 {
-                margin: 0 0 0.5rem 0;
-                font-size: 1.1rem;
-                font-weight: 600;
-                line-height: 1.4;
-            }
-
-            .post-title a {
+            .post-title-link {
                 text-decoration: none;
                 color: var(--pico-color);
                 transition: color 0.2s;
                 display: block;
+                font-size: 0.875rem; /* 본문과 동일한 14px */
+                font-weight: bold;
+                line-height: 1.4;
+                margin: 0 0 0.5rem 0;
             }
 
-            .post-title a:hover {
+            .post-title-link:hover {
                 color: var(--pico-primary);
             }
 
