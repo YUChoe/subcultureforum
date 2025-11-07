@@ -1,0 +1,32 @@
+<nav class="container-fluid">
+    <ul>
+        <li><strong><a href="/" class="contrast">🏠 서브컬처 포럼</a></strong></li>
+    </ul>
+    <ul>
+        <li><a href="/forum/search" class="contrast">🔍 검색</a></li>
+        <% if (typeof user !== 'undefined' && user) { %>
+            <li>
+                <details class="dropdown">
+                    <summary>👤 <%= user.username %></summary>
+                    <ul dir="rtl">
+                        <% if (user.role === 'super_admin') { %>
+                            <li><a href="/admin">⚙️ 관리자 패널</a></li>
+                        <% } %>
+                        <% if (user.role === 'moderator' || user.role === 'super_admin') { %>
+                            <li><a href="/moderate">🛡️ 모더레이션</a></li>
+                        <% } %>
+                        <li><a href="/profile">👤 프로필</a></li>
+                        <li>
+                            <form method="POST" action="/auth/logout" style="margin: 0;">
+                                <button type="submit" class="outline" style="width: 100%; margin: 0;">🚪 로그아웃</button>
+                            </form>
+                        </li>
+                    </ul>
+                </details>
+            </li>
+        <% } else { %>
+            <li><a href="/auth/login">🔑 로그인</a></li>
+            <li><a href="/auth/register" role="button">📝 회원가입</a></li>
+        <% } %>
+    </ul>
+</nav>

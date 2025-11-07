@@ -468,6 +468,298 @@ class AdminService {
     }
 
     /**
+     * 모더레이터 권한 부여
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {number} userId - 대상 사용자 ID
+     * @param {number} categoryId - 카테고리 ID
+     * @returns {Promise<boolean>} 성공 여부
+     */
+    async assignModerator(adminUserId, userId, categoryId) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('모더레이터 권한 부여 권한이 없습니다.');
+        }
+
+        if (!userId || !categoryId) {
+            throw new Error('사용자 ID와 카테고리 ID가 필요합니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            // 사용자 존재 확인
+            const user = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id, username, role FROM users WHERE id = ?',
+                [userId]
+            );
+
+            if (!user) {
+                throw new Error('사용자를 찾을 수 없습니다.');
+            }
+
+            // 카테고리 존재 확인
+            const category = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id, name FROM categories WHERE id = ? AND is_active = 1',
+                [categoryId]
+            );
+
+            if (!category) {
+                throw new Error('카테고리를 찾을 수 없습니다.');
+            }
+
+            // 이미 권한이 있는지 확인
+            const existingPermission = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id FROM moderator_permissions WHERE user_id = ? AND category_id = ?',
+                [userId, categoryId]
+            );
+
+            if (existingPermission) {
+                throw new Error('이미 해당 카테고리의 모더레이터 권한이 있습니다.');
+            }
+
+            // 모더레이터 권한 부여
+            await this.dbManager.runQuery(
+                configDB,
+                'INSERT INTO moderator_permissions (user_id, category_id) VALUES (?, ?)',
+                [userId, categoryId]
+            );
+
+            // 사용자 역할이 user인 경우 moderator로 변경
+            if (user.role === 'user') {
+                await this.dbManager.runQuery(
+                    configDB,
+                    'UPDATE users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                    ['moderator', userId]
+                );
+            }
+
+            // 활동 로그 기록
+            await this.authService.logUserActivity(
+                adminUserId,
+                'moderator_assigned',
+                `모더레이터 권한 부여: ${user.username} → ${category.name} (카테고리 ID: ${categoryId})`
+            );
+
+            console.log(`모더레이터 권한 부여 완료: ${user.username} → ${category.name}`);
+            return true;
+
+        } catch (error) {
+            console.error('모더레이터 권한 부여 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 모더레이터 권한 제거
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {number} userId - 대상 사용자 ID
+     * @param {number} categoryId - 카테고리 ID
+     * @returns {Promise<boolean>} 성공 여부
+     */
+    async removeModerator(adminUserId, userId, categoryId) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('모더레이터 권한 제거 권한이 없습니다.');
+        }
+
+        if (!userId || !categoryId) {
+            throw new Error('사용자 ID와 카테고리 ID가 필요합니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            // 사용자 존재 확인
+            const user = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id, username, role FROM users WHERE id = ?',
+                [userId]
+            );
+
+            if (!user) {
+                throw new Error('사용자를 찾을 수 없습니다.');
+            }
+
+            // 카테고리 존재 확인
+            const category = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id, name FROM categories WHERE id = ? AND is_active = 1',
+                [categoryId]
+            );
+
+            if (!category) {
+                throw new Error('카테고리를 찾을 수 없습니다.');
+            }
+
+            // 권한 존재 확인
+            const existingPermission = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id FROM moderator_permissions WHERE user_id = ? AND category_id = ?',
+                [userId, categoryId]
+            );
+
+            if (!existingPermission) {
+                throw new Error('해당 카테고리의 모더레이터 권한이 없습니다.');
+            }
+
+            // 모더레이터 권한 제거
+            await this.dbManager.runQuery(
+                configDB,
+                'DELETE FROM moderator_permissions WHERE user_id = ? AND category_id = ?',
+                [userId, categoryId]
+            );
+
+            // 다른 카테고리의 모더레이터 권한이 없으면 역할을 user로 변경
+            const remainingPermissions = await this.dbManager.getQuery(
+                configDB,
+                'SELECT COUNT(*) as count FROM moderator_permissions WHERE user_id = ?',
+                [userId]
+            );
+
+            if (user.role === 'moderator' && (!remainingPermissions || remainingPermissions.count === 0)) {
+                await this.dbManager.runQuery(
+                    configDB,
+                    'UPDATE users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                    ['user', userId]
+                );
+            }
+
+            // 활동 로그 기록
+            await this.authService.logUserActivity(
+                adminUserId,
+                'moderator_removed',
+                `모더레이터 권한 제거: ${user.username} ← ${category.name} (카테고리 ID: ${categoryId})`
+            );
+
+            console.log(`모더레이터 권한 제거 완료: ${user.username} ← ${category.name}`);
+            return true;
+
+        } catch (error) {
+            console.error('모더레이터 권한 제거 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 사용자의 모든 모더레이터 권한 조회
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {number} userId - 대상 사용자 ID
+     * @returns {Promise<Array>} 모더레이터 권한 목록
+     */
+    async getUserModeratorPermissions(adminUserId, userId) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('모더레이터 권한 조회 권한이 없습니다.');
+        }
+
+        if (!userId) {
+            throw new Error('사용자 ID가 필요합니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const permissions = await this.dbManager.allQuery(
+                configDB,
+                `SELECT mp.id, mp.user_id, mp.category_id, mp.created_at,
+                        c.name as category_name, c.description as category_description
+                 FROM moderator_permissions mp
+                 JOIN categories c ON mp.category_id = c.id
+                 WHERE mp.user_id = ? AND c.is_active = 1
+                 ORDER BY c.display_order ASC, c.name ASC`,
+                [userId]
+            );
+
+            return permissions;
+
+        } catch (error) {
+            console.error('모더레이터 권한 조회 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 카테고리의 모든 모더레이터 조회
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {number} categoryId - 카테고리 ID
+     * @returns {Promise<Array>} 모더레이터 목록
+     */
+    async getCategoryModerators(adminUserId, categoryId) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('모더레이터 목록 조회 권한이 없습니다.');
+        }
+
+        if (!categoryId) {
+            throw new Error('카테고리 ID가 필요합니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const moderators = await this.dbManager.allQuery(
+                configDB,
+                `SELECT mp.id, mp.user_id, mp.category_id, mp.created_at,
+                        u.username, u.email, u.role
+                 FROM moderator_permissions mp
+                 JOIN users u ON mp.user_id = u.id
+                 WHERE mp.category_id = ?
+                 ORDER BY u.username ASC`,
+                [categoryId]
+            );
+
+            return moderators;
+
+        } catch (error) {
+            console.error('모더레이터 목록 조회 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 모든 모더레이터 권한 조회 (관리자용)
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @returns {Promise<Array>} 모든 모더레이터 권한 목록
+     */
+    async getAllModeratorPermissions(adminUserId) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('모더레이터 권한 조회 권한이 없습니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const permissions = await this.dbManager.allQuery(
+                configDB,
+                `SELECT mp.id, mp.user_id, mp.category_id, mp.created_at,
+                        u.username, u.email, u.role,
+                        c.name as category_name, c.description as category_description
+                 FROM moderator_permissions mp
+                 JOIN users u ON mp.user_id = u.id
+                 JOIN categories c ON mp.category_id = c.id
+                 WHERE c.is_active = 1
+                 ORDER BY u.username ASC, c.display_order ASC`,
+                []
+            );
+
+            return permissions;
+
+        } catch (error) {
+            console.error('모든 모더레이터 권한 조회 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 사용자 목록 조회 (관리자용)
      * @param {number} adminUserId - 관리자 사용자 ID
      * @param {Object} options - 조회 옵션

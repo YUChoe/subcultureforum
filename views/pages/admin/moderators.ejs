@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="auto">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모더레이터 권한 관리 - 서브컬처 포럼</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('../../partials/nav') %>
+
+    <main class="container">
+        <nav aria-label="breadcrumb">
+            <ul>
+                <li><a href="/">홈</a></li>
+                <li><a href="/admin">관리자</a></li>
+                <li>모더레이터 권한 관리</li>
+            </ul>
+        </nav>
+
+        <hgroup>
+            <h1>모더레이터 권한 관리</h1>
+            <p>서브포럼별 모더레이터 권한을 부여하고 관리합니다</p>
+        </hgroup>
+
+        <!-- 모더레이터 권한 부여 섹션 -->
+        <article>
+            <header>
+                <h3>새 모더레이터 권한 부여</h3>
+            </header>
+            <form id="assignModeratorForm">
+                <div class="grid">
+                    <div>
+                        <label for="userId">
+                            사용자 선택
+                            <select id="userId" name="userId" required>
+                                <option value="">사용자를 선택하세요</option>
+                                <% users.forEach(user => { %>
+                                    <% if (user.role !== 'super_admin') { %>
+                                        <option value="<%= user.id %>">
+                                            <%= user.username %> (<%= user.email %>) - <%= user.role === 'moderator' ? '모더레이터' : '일반 사용자' %>
+                                        </option>
+                                    <% } %>
+                                <% }); %>
+                            </select>
+                        </label>
+                    </div>
+                    <div>
+                        <label for="categoryId">
+                            서브포럼 선택
+                            <select id="categoryId" name="categoryId" required>
+                                <option value="">서브포럼을 선택하세요</option>
+                                <% subforums.forEach(subforum => { %>
+                                    <option value="<%= subforum.id %>">
+                                        <%= subforum.name %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit">권한 부여</button>
+            </form>
+            <div id="assignMessage" style="margin-top: 1rem;"></div>
+        </article>
+
+        <!-- 서브포럼별 모더레이터 목록 -->
+        <% Object.values(subforumModerators).forEach(item => { %>
+            <article>
+                <header>
+                    <h3><%= item.subforum.name %></h3>
+                    <p><%= item.subforum.description || '설명 없음' %></p>
+                </header>
+
+                <% if (item.moderators.length === 0) { %>
+                    <p style="color: var(--muted-color);">이 서브포럼에 지정된 모더레이터가 없습니다.</p>
+                <% } else { %>
+                    <table role="grid">
+                        <thead>
+                            <tr>
+                                <th>사용자명</th>
+                                <th>이메일</th>
+                                <th>역할</th>
+                                <th>권한 부여일</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% item.moderators.forEach(mod => { %>
+                                <tr>
+                                    <td><%= mod.username %></td>
+                                    <td><%= mod.email %></td>
+                                    <td>
+                                        <% if (mod.role === 'super_admin') { %>
+                                            <span style="color: var(--primary);">슈퍼 관리자</span>
+                                        <% } else if (mod.role === 'moderator') { %>
+                                            <span style="color: var(--secondary);">모더레이터</span>
+                                        <% } else { %>
+                                            일반 사용자
+                                        <% } %>
+                                    </td>
+                                    <td><%= new Date(mod.created_at).toLocaleDateString('ko-KR') %></td>
+                                    <td>
+                                        <button
+                                            class="remove-moderator-btn secondary outline"
+                                            data-user-id="<%= mod.user_id %>"
+                                            data-category-id="<%= mod.category_id %>"
+                                            data-username="<%= mod.username %>"
+                                            data-subforum-name="<%= item.subforum.name %>"
+                                            style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">
+                                            권한 제거
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                <% } %>
+            </article>
+        <% }); %>
+
+        <% if (Object.keys(subforumModerators).length === 0) { %>
+            <article>
+                <p style="text-align: center; color: var(--muted-color);">
+                    활성화된 서브포럼이 없습니다. 먼저 서브포럼을 생성해주세요.
+                </p>
+            </article>
+        <% } %>
+    </main>
+
+    <footer class="container-fluid">
+        <small>
+            © 2024 서브컬처 포럼. Node.js와 SQLite로 구축된 커뮤니티 사이트입니다.
+        </small>
+    </footer>
+
+    <script>
+    // 모더레이터 권한 부여 폼 처리
+    document.getElementById('assignModeratorForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const messageDiv = document.getElementById('assignMessage');
+        const userId = document.getElementById('userId').value;
+        const categoryId = document.getElementById('categoryId').value;
+
+        if (!userId || !categoryId) {
+            messageDiv.innerHTML = '<p style="color: var(--del-color);">사용자와 서브포럼을 모두 선택해주세요.</p>';
+            return;
+        }
+
+        try {
+            const response = await fetch('/admin/moderators/assign', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId: parseInt(userId), categoryId: parseInt(categoryId) })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                messageDiv.innerHTML = '<p style="color: var(--ins-color);">' + data.message + '</p>';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                messageDiv.innerHTML = '<p style="color: var(--del-color);">' + (data.error || '권한 부여 중 오류가 발생했습니다.') + '</p>';
+            }
+        } catch (error) {
+            console.error('권한 부여 오류:', error);
+            messageDiv.innerHTML = '<p style="color: var(--del-color);">권한 부여 중 오류가 발생했습니다.</p>';
+        }
+    });
+
+    // 모더레이터 권한 제거 버튼 처리
+    document.querySelectorAll('.remove-moderator-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const userId = e.target.dataset.userId;
+            const categoryId = e.target.dataset.categoryId;
+            const username = e.target.dataset.username;
+            const subforumName = e.target.dataset.subforumName;
+
+            if (!confirm(`정말로 "${username}" 사용자의 "${subforumName}" 서브포럼 모더레이터 권한을 제거하시겠습니까?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/moderators/remove', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId: parseInt(userId), categoryId: parseInt(categoryId) })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.error || '권한 제거 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('권한 제거 오류:', error);
+                alert('권한 제거 중 오류가 발생했습니다.');
+            }
+        });
+    });
+    </script>
+</body>
+</html>

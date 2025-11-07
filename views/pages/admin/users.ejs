@@ -1,0 +1,143 @@
+<%- include('../../layouts/main', { content: `
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ul>
+            <li><a href="/">홈</a></li>
+            <li><a href="/admin">관리자</a></li>
+            <li>사용자 관리</li>
+        </ul>
+    </nav>
+
+    <hgroup>
+        <h1>사용자 관리</h1>
+        <p>포럼 사용자 목록 및 권한 관리</p>
+    </hgroup>
+
+    <!-- 검색 및 필터 -->
+    <article>
+        <form method="GET" action="/admin/users">
+            <div class="grid">
+                <div>
+                    <label for="search">
+                        검색
+                        <input
+                            type="text"
+                            id="search"
+                            name="search"
+                            placeholder="사용자명 또는 이메일 검색"
+                            value="<%= filters.search || '' %>">
+                    </label>
+                </div>
+                <div>
+                    <label for="role">
+                        역할 필터
+                        <select id="role" name="role">
+                            <option value="">전체</option>
+                            <option value="user" <%= filters.role === 'user' ? 'selected' : '' %>>일반 사용자</option>
+                            <option value="moderator" <%= filters.role === 'moderator' ? 'selected' : '' %>>모더레이터</option>
+                            <option value="super_admin" <%= filters.role === 'super_admin' ? 'selected' : '' %>>슈퍼 관리자</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+            <button type="submit">검색</button>
+        </form>
+    </article>
+
+    <!-- 사용자 목록 -->
+    <article>
+        <% if (users.length === 0) { %>
+            <p style="text-align: center; color: var(--muted-color);">
+                검색 결과가 없습니다.
+            </p>
+        <% } else { %>
+            <table role="grid">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>사용자명</th>
+                        <th>이메일</th>
+                        <th>역할</th>
+                        <th>가입일</th>
+                        <th>작업</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% users.forEach(user => { %>
+                        <tr>
+                            <td><%= user.id %></td>
+                            <td><%= user.username %></td>
+                            <td><%= user.email %></td>
+                            <td>
+                                <% if (user.role === 'super_admin') { %>
+                                    <span style="color: var(--primary);">슈퍼 관리자</span>
+                                <% } else if (user.role === 'moderator') { %>
+                                    <span style="color: var(--secondary);">모더레이터</span>
+                                <% } else { %>
+                                    일반 사용자
+                                <% } %>
+                            </td>
+                            <td><%= new Date(user.created_at).toLocaleDateString('ko-KR') %></td>
+                            <td>
+                                <a
+                                    href="/admin/moderators?userId=<%= user.id %>"
+                                    class="secondary outline"
+                                    style="padding: 0.25rem 0.5rem; font-size: 0.875rem; text-decoration: none; display: inline-block;">
+                                    권한 관리
+                                </a>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+
+            <!-- 페이지네이션 -->
+            <% if (pagination.total_pages > 1) { %>
+                <nav aria-label="pagination" style="margin-top: 2rem;">
+                    <ul style="display: flex; justify-content: center; list-style: none; padding: 0; gap: 0.5rem;">
+                        <% if (pagination.has_prev) { %>
+                            <li>
+                                <a href="?page=<%= pagination.current_page - 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.role ? '&role=' + filters.role : '' %>">
+                                    이전
+                                </a>
+                            </li>
+                        <% } %>
+
+                        <%
+                        const startPage = Math.max(1, pagination.current_page - 2);
+                        const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+
+                        for (let i = startPage; i <= endPage; i++) {
+                        %>
+                            <li>
+                                <% if (i === pagination.current_page) { %>
+                                    <strong><%= i %></strong>
+                                <% } else { %>
+                                    <a href="?page=<%= i %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.role ? '&role=' + filters.role : '' %>">
+                                        <%= i %>
+                                    </a>
+                                <% } %>
+                            </li>
+                        <% } %>
+
+                        <% if (pagination.has_next) { %>
+                            <li>
+                                <a href="?page=<%= pagination.current_page + 1 %><%= filters.search ? '&search=' + filters.search : '' %><%= filters.role ? '&role=' + filters.role : '' %>">
+                                    다음
+                                </a>
+                            </li>
+                        <% } %>
+                    </ul>
+                    <p style="text-align: center; color: var(--muted-color); margin-top: 1rem;">
+                        전체 <%= pagination.total_count %>명 중 <%= pagination.current_page %> / <%= pagination.total_pages %> 페이지
+                    </p>
+                </nav>
+            <% } %>
+        <% } %>
+    </article>
+
+    <div style="margin-top: 2rem;">
+        <a href="/admin" role="button" class="secondary">관리자 대시보드로 돌아가기</a>
+    </div>
+</div>
+` }) %>

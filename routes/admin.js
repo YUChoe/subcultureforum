@@ -263,15 +263,20 @@ router.get('/users', requireAdmin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const search = req.query.search || '';
+        const role = req.query.role || null;
 
-        // TODO: AdminService에서 사용자 목록 가져오기
-        const users = [];
+        const result = await adminService.getUserList(req.user.id, {
+            page: page,
+            limit: 20,
+            search: search,
+            role: role
+        });
 
         res.render('pages/admin/users', {
             title: '사용자 관리',
-            users: users,
-            currentPage: page,
-            search: search
+            users: result.users,
+            pagination: result.pagination,
+            filters: result.filters
         });
     } catch (error) {
         console.error('사용자 관리 페이지 오류:', error);
@@ -285,11 +290,49 @@ router.get('/users', requireAdmin, async (req, res) => {
     }
 });
 
-// 사용자 권한 변경
-router.post('/users/:id/role', requireAdmin, [
-    body('role')
-        .isIn(['user', 'moderator', 'super_admin'])
-        .withMessage('올바른 권한을 선택해주세요')
+// 모더레이터 권한 관리 페이지
+router.get('/moderators', requireAdmin, async (req, res) => {
+    try {
+        const permissions = await adminService.getAllModeratorPermissions(req.user.id);
+        const subforums = await adminService.getAllCategories(req.user.id, false);
+        const usersResult = await adminService.getUserList(req.user.id, { limit: 1000 });
+
+        // 서브포럼별로 모더레이터 그룹화
+        const subforumModerators = {};
+        subforums.forEach(subforum => {
+            subforumModerators[subforum.id] = {
+                subforum: subforum,
+                moderators: permissions.filter(p => p.category_id === subforum.id)
+            };
+        });
+
+        res.render('pages/admin/moderators', {
+            title: '모더레이터 권한 관리',
+            subforumModerators: subforumModerators,
+            subforums: subforums,
+            users: usersResult.users,
+            permissions: permissions
+        });
+    } catch (error) {
+        console.error('모더레이터 권한 관리 페이지 오류:', error);
+        res.status(500).render('pages/error', {
+            title: '서버 오류',
+            error: {
+                status: 500,
+                message: '모더레이터 권한 관리 페이지를 로드하는 중 오류가 발생했습니다.'
+            }
+        });
+    }
+});
+
+// 모더레이터 권한 부여
+router.post('/moderators/assign', requireAdmin, [
+    body('userId')
+        .isInt({ min: 1 })
+        .withMessage('올바른 사용자 ID를 입력해주세요'),
+    body('categoryId')
+        .isInt({ min: 1 })
+        .withMessage('올바른 서브포럼 ID를 입력해주세요')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -297,16 +340,86 @@ router.post('/users/:id/role', requireAdmin, [
             return res.status(400).json({ error: errors.array()[0].msg });
         }
 
-        const userId = parseInt(req.params.id);
-        const { role } = req.body;
+        const { userId, categoryId } = req.body;
 
-        // TODO: AdminService에서 사용자 권한 변경
-        // await adminService.updateUserRole(userId, role);
+        await adminService.assignModerator(req.user.id, parseInt(userId), parseInt(categoryId));
 
-        res.json({ success: true, message: '사용자 권한이 변경되었습니다.' });
+        res.json({
+            success: true,
+            message: '모더레이터 권한이 성공적으로 부여되었습니다.'
+        });
     } catch (error) {
-        console.error('사용자 권한 변경 오류:', error);
-        res.status(500).json({ error: '권한 변경 중 오류가 발생했습니다.' });
+        console.error('모더레이터 권한 부여 오류:', error);
+        res.status(500).json({
+            error: error.message || '모더레이터 권한 부여 중 오류가 발생했습니다.'
+        });
+    }
+});
+
+// 모더레이터 권한 제거
+router.post('/moderators/remove', requireAdmin, [
+    body('userId')
+        .isInt({ min: 1 })
+        .withMessage('올바른 사용자 ID를 입력해주세요'),
+    body('categoryId')
+        .isInt({ min: 1 })
+        .withMessage('올바른 서브포럼 ID를 입력해주세요')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ error: errors.array()[0].msg });
+        }
+
+        const { userId, categoryId } = req.body;
+
+        await adminService.removeModerator(req.user.id, parseInt(userId), parseInt(categoryId));
+
+        res.json({
+            success: true,
+            message: '모더레이터 권한이 성공적으로 제거되었습니다.'
+        });
+    } catch (error) {
+        console.error('모더레이터 권한 제거 오류:', error);
+        res.status(500).json({
+            error: error.message || '모더레이터 권한 제거 중 오류가 발생했습니다.'
+        });
+    }
+});
+
+// 사용자별 모더레이터 권한 조회
+router.get('/moderators/user/:userId', requireAdmin, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const permissions = await adminService.getUserModeratorPermissions(req.user.id, userId);
+
+        res.json({
+            success: true,
+            permissions: permissions
+        });
+    } catch (error) {
+        console.error('사용자 모더레이터 권한 조회 오류:', error);
+        res.status(500).json({
+            error: error.message || '권한 조회 중 오류가 발생했습니다.'
+        });
+    }
+});
+
+// 서브포럼별 모더레이터 조회
+router.get('/moderators/subforum/:categoryId', requireAdmin, async (req, res) => {
+    try {
+        const categoryId = parseInt(req.params.categoryId);
+        const moderators = await adminService.getCategoryModerators(req.user.id, categoryId);
+
+        res.json({
+            success: true,
+            moderators: moderators
+        });
+    } catch (error) {
+        console.error('서브포럼 모더레이터 조회 오류:', error);
+        res.status(500).json({
+            error: error.message || '모더레이터 조회 중 오류가 발생했습니다.'
+        });
     }
 });
 
