@@ -423,4 +423,123 @@ router.get('/moderators/subforum/:categoryId', requireAdmin, async (req, res) =>
     }
 });
 
+// 사용자 차단
+router.post('/users/:userId/ban', requireAdmin, [
+    body('reason')
+        .isLength({ min: 1, max: 500 })
+        .withMessage('차단 사유는 1-500자 사이여야 합니다')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ error: errors.array()[0].msg });
+        }
+
+        const userId = parseInt(req.params.userId);
+        const { reason, duration, customDate } = req.body;
+
+        // 차단 만료일 계산
+        let expiresAt = null;
+        if (duration !== 'permanent') {
+            const now = new Date();
+            switch (duration) {
+                case '1day':
+                    expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                    break;
+                case '7days':
+                    expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case '30days':
+                    expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                    break;
+                case '90days':
+                    expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'custom':
+                    if (!customDate) {
+                        return res.status(400).json({ error: '사용자 지정 날짜를 입력해주세요.' });
+                    }
+                    expiresAt = new Date(customDate);
+                    if (expiresAt <= now) {
+                        return res.status(400).json({ error: '만료일은 현재 시간 이후여야 합니다.' });
+                    }
+                    break;
+            }
+        }
+
+        const ban = await adminService.banUser(req.user.id, userId, reason, expiresAt);
+
+        res.json({
+            success: true,
+            message: '사용자가 성공적으로 차단되었습니다.',
+            ban: ban
+        });
+    } catch (error) {
+        console.error('사용자 차단 오류:', error);
+        res.status(500).json({
+            error: error.message || '사용자 차단 중 오류가 발생했습니다.'
+        });
+    }
+});
+
+// 사용자 차단 해제
+router.post('/users/:userId/unban', requireAdmin, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+
+        await adminService.unbanUser(req.user.id, userId);
+
+        res.json({
+            success: true,
+            message: '사용자 차단이 성공적으로 해제되었습니다.'
+        });
+    } catch (error) {
+        console.error('사용자 차단 해제 오류:', error);
+        res.status(500).json({
+            error: error.message || '사용자 차단 해제 중 오류가 발생했습니다.'
+        });
+    }
+});
+
+// 사용자 차단 정보 조회
+router.get('/users/:userId/ban', requireAdmin, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const ban = await adminService.getUserBanInfo(req.user.id, userId);
+
+        res.json({
+            success: true,
+            ban: ban
+        });
+    } catch (error) {
+        console.error('차단 정보 조회 오류:', error);
+        res.status(500).json({
+            error: error.message || '차단 정보 조회 중 오류가 발생했습니다.'
+        });
+    }
+});
+
+// 차단 목록 조회
+router.get('/bans', requireAdmin, async (req, res) => {
+    try {
+        const includeInactive = req.query.includeInactive === 'true';
+        const bans = await adminService.getAllBans(req.user.id, includeInactive);
+
+        res.render('pages/admin/bans', {
+            title: '차단 관리',
+            bans: bans,
+            includeInactive: includeInactive
+        });
+    } catch (error) {
+        console.error('차단 목록 조회 오류:', error);
+        res.status(500).render('pages/error', {
+            title: '서버 오류',
+            error: {
+                status: 500,
+                message: '차단 목록을 로드하는 중 오류가 발생했습니다.'
+            }
+        });
+    }
+});
+
 module.exports = router;

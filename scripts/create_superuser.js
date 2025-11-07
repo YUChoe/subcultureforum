@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const DatabaseManager = require('./services/DatabaseManager');
+const DatabaseManager = require('../services/DatabaseManager');
 
 async function createSuperUser() {
     try {

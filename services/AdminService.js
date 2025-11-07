@@ -760,6 +760,246 @@ class AdminService {
     }
 
     /**
+     * 사용자 차단
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {number} userId - 차단할 사용자 ID
+     * @param {string} reason - 차단 사유
+     * @param {Date|null} expiresAt - 차단 만료일 (null이면 영구 차단)
+     * @returns {Promise<Object>} 차단 정보
+     */
+    async banUser(adminUserId, userId, reason, expiresAt = null) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('사용자 차단 권한이 없습니다.');
+        }
+
+        if (!userId) {
+            throw new Error('사용자 ID가 필요합니다.');
+        }
+
+        if (!reason || reason.trim().length === 0) {
+            throw new Error('차단 사유가 필요합니다.');
+        }
+
+        if (reason.trim().length > 500) {
+            throw new Error('차단 사유는 500자를 초과할 수 없습니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            // 사용자 존재 확인
+            const user = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id, username, role FROM users WHERE id = ?',
+                [userId]
+            );
+
+            if (!user) {
+                throw new Error('사용자를 찾을 수 없습니다.');
+            }
+
+            // 슈퍼 관리자는 차단할 수 없음
+            if (user.role === 'super_admin') {
+                throw new Error('슈퍼 관리자는 차단할 수 없습니다.');
+            }
+
+            // 자기 자신은 차단할 수 없음
+            if (userId === adminUserId) {
+                throw new Error('자기 자신을 차단할 수 없습니다.');
+            }
+
+            // 이미 활성 차단이 있는지 확인
+            const existingBan = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id FROM user_bans WHERE user_id = ? AND is_active = 1',
+                [userId]
+            );
+
+            if (existingBan) {
+                throw new Error('이미 차단된 사용자입니다.');
+            }
+
+            // 차단 기록 생성
+            const result = await this.dbManager.runQuery(
+                configDB,
+                `INSERT INTO user_bans (user_id, banned_by, reason, expires_at, is_active)
+                 VALUES (?, ?, ?, ?, 1)`,
+                [userId, adminUserId, reason.trim(), expiresAt ? expiresAt.toISOString() : null]
+            );
+
+            // 차단 정보 조회
+            const ban = await this.dbManager.getQuery(
+                configDB,
+                `SELECT ub.*, u.username, a.username as banned_by_username
+                 FROM user_bans ub
+                 JOIN users u ON ub.user_id = u.id
+                 JOIN users a ON ub.banned_by = a.id
+                 WHERE ub.id = ?`,
+                [result.lastID]
+            );
+
+            // 활동 로그 기록
+            const expiryText = expiresAt ?
+                `만료일: ${expiresAt.toLocaleDateString('ko-KR')}` :
+                '영구 차단';
+
+            await this.authService.logUserActivity(
+                adminUserId,
+                'user_banned',
+                `사용자 차단: ${user.username} (사유: ${reason.trim()}, ${expiryText})`
+            );
+
+            console.log(`사용자 차단 완료: ${user.username} (관리자: ${adminUserId})`);
+            return ban;
+
+        } catch (error) {
+            console.error('사용자 차단 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 사용자 차단 해제
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {number} userId - 차단 해제할 사용자 ID
+     * @returns {Promise<boolean>} 성공 여부
+     */
+    async unbanUser(adminUserId, userId) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('사용자 차단 해제 권한이 없습니다.');
+        }
+
+        if (!userId) {
+            throw new Error('사용자 ID가 필요합니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            // 사용자 존재 확인
+            const user = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id, username FROM users WHERE id = ?',
+                [userId]
+            );
+
+            if (!user) {
+                throw new Error('사용자를 찾을 수 없습니다.');
+            }
+
+            // 활성 차단 확인
+            const activeBan = await this.dbManager.getQuery(
+                configDB,
+                'SELECT id FROM user_bans WHERE user_id = ? AND is_active = 1',
+                [userId]
+            );
+
+            if (!activeBan) {
+                throw new Error('활성 차단이 없습니다.');
+            }
+
+            // 차단 해제
+            await this.dbManager.runQuery(
+                configDB,
+                'UPDATE user_bans SET is_active = 0 WHERE user_id = ? AND is_active = 1',
+                [userId]
+            );
+
+            // 활동 로그 기록
+            await this.authService.logUserActivity(
+                adminUserId,
+                'user_unbanned',
+                `사용자 차단 해제: ${user.username}`
+            );
+
+            console.log(`사용자 차단 해제 완료: ${user.username} (관리자: ${adminUserId})`);
+            return true;
+
+        } catch (error) {
+            console.error('사용자 차단 해제 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 사용자 차단 정보 조회
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {number} userId - 사용자 ID
+     * @returns {Promise<Object|null>} 차단 정보 (차단되지 않은 경우 null)
+     */
+    async getUserBanInfo(adminUserId, userId) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('차단 정보 조회 권한이 없습니다.');
+        }
+
+        if (!userId) {
+            throw new Error('사용자 ID가 필요합니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const ban = await this.dbManager.getQuery(
+                configDB,
+                `SELECT ub.*, u.username, a.username as banned_by_username
+                 FROM user_bans ub
+                 JOIN users u ON ub.user_id = u.id
+                 JOIN users a ON ub.banned_by = a.id
+                 WHERE ub.user_id = ? AND ub.is_active = 1`,
+                [userId]
+            );
+
+            return ban || null;
+
+        } catch (error) {
+            console.error('차단 정보 조회 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 모든 차단 목록 조회
+     * @param {number} adminUserId - 관리자 사용자 ID
+     * @param {boolean} includeInactive - 비활성 차단 포함 여부
+     * @returns {Promise<Array>} 차단 목록
+     */
+    async getAllBans(adminUserId, includeInactive = false) {
+        // 관리자 권한 확인
+        const hasPermission = await this.authService.checkPermission(adminUserId, 'admin_site');
+        if (!hasPermission) {
+            throw new Error('차단 목록 조회 권한이 없습니다.');
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const whereClause = includeInactive ? '' : 'WHERE ub.is_active = 1';
+
+            const bans = await this.dbManager.allQuery(
+                configDB,
+                `SELECT ub.*, u.username, u.email, a.username as banned_by_username
+                 FROM user_bans ub
+                 JOIN users u ON ub.user_id = u.id
+                 JOIN users a ON ub.banned_by = a.id
+                 ${whereClause}
+                 ORDER BY ub.banned_at DESC`
+            );
+
+            return bans;
+
+        } catch (error) {
+            console.error('차단 목록 조회 실패:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 사용자 목록 조회 (관리자용)
      * @param {number} adminUserId - 관리자 사용자 ID
      * @param {Object} options - 조회 옵션
@@ -810,11 +1050,14 @@ class AdminService {
             const safeSortOrder = validSortOrders.includes(sortOrder.toUpperCase()) ?
                 sortOrder.toUpperCase() : 'DESC';
 
-            // 사용자 목록 조회
+            // 사용자 목록 조회 (차단 정보 포함)
             const users = await this.dbManager.allQuery(
                 configDB,
-                `SELECT id, username, email, role, created_at, updated_at
-                 FROM users
+                `SELECT u.id, u.username, u.email, u.role, u.created_at, u.updated_at,
+                        ub.id as ban_id, ub.reason as ban_reason, ub.banned_at, ub.expires_at,
+                        ub.is_active as is_banned
+                 FROM users u
+                 LEFT JOIN user_bans ub ON u.id = ub.user_id AND ub.is_active = 1
                  ${whereClause}
                  ORDER BY ${safeSortBy} ${safeSortOrder}
                  LIMIT ? OFFSET ?`,

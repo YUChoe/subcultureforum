@@ -735,6 +735,65 @@ class AuthService {
             });
         }
     }
+
+    /**
+     * 사용자 차단 상태 확인
+     * @param {number} userId - 사용자 ID
+     * @returns {Promise<boolean>} 차단 여부
+     */
+    async isUserBanned(userId) {
+        if (!userId) {
+            return false;
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const ban = await this.dbManager.getQuery(
+                configDB,
+                `SELECT id, expires_at FROM user_bans
+                 WHERE user_id = ? AND is_active = 1
+                 AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`,
+                [userId]
+            );
+
+            return !!ban;
+        } catch (error) {
+            console.error('사용자 차단 상태 확인 실패:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 사용자 차단 정보 조회
+     * @param {number} userId - 사용자 ID
+     * @returns {Promise<Object|null>} 차단 정보
+     */
+    async getUserBanInfo(userId) {
+        if (!userId) {
+            return null;
+        }
+
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            const ban = await this.dbManager.getQuery(
+                configDB,
+                `SELECT ub.*, u.username, a.username as banned_by_username
+                 FROM user_bans ub
+                 JOIN users u ON ub.user_id = u.id
+                 JOIN users a ON ub.banned_by = a.id
+                 WHERE ub.user_id = ? AND ub.is_active = 1
+                 AND (ub.expires_at IS NULL OR ub.expires_at > CURRENT_TIMESTAMP)`,
+                [userId]
+            );
+
+            return ban;
+        } catch (error) {
+            console.error('사용자 차단 정보 조회 실패:', error);
+            return null;
+        }
+    }
 }
 
 module.exports = AuthService;
