@@ -8,7 +8,7 @@ const forumService = new ForumService();
 // 메인 페이지 - 포럼 카테고리 목록
 router.get('/', async (req, res) => {
     try {
-        // 카테고리 목록 조회 (subforums를 categories로 변경)
+        // 카테고리 목록 조회
         const categories = await forumService.getSubforums();
 
         // 인기 게시글 조회 (전체 카테고리에서 최근 7일간)
@@ -17,19 +17,17 @@ router.get('/', async (req, res) => {
         // 최근 활동 게시글 조회
         const recentActivityPosts = await forumService.getRecentActivityPosts(null, 5);
 
-        // 통계 정보 계산
-        const totalCategories = categories.length;
-        const totalPosts = categories.reduce((sum, cat) => sum + (cat.post_count || 0), 0);
-        const totalUsers = 0; // TODO: 사용자 수 조회 구현
+        // 공개 통계 정보 조회
+        const statistics = await forumService.getPublicStatistics();
 
         res.render('pages/index', {
             title: '포럼 메인',
             categories: categories,
             popularPosts: popularPosts,
             recentActivityPosts: recentActivityPosts,
-            totalCategories: totalCategories,
-            totalPosts: totalPosts,
-            totalUsers: totalUsers
+            totalCategories: statistics.totalSubforums,
+            totalPosts: statistics.totalPosts,
+            totalUsers: statistics.totalUsers
         });
     } catch (error) {
         console.error('메인 페이지 로드 오류:', error);

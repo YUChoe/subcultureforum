@@ -1,0 +1,426 @@
+<%- include('../../layouts/main', {
+    title: title,
+    body: `
+        <main class="container">
+            <header>
+                <nav aria-label="breadcrumb">
+                    <ol>
+                        <li><a href="/admin">관리자</a></li>
+                        <li>서브포럼 관리</li>
+                    </ol>
+                </nav>
+
+                <div class="page-header">
+                    <h1>서브포럼 관리</h1>
+                    <a href="/admin/forums/new" role="button">새 서브포럼 생성</a>
+                </div>
+            </header>
+
+            <!-- 성공 메시지 -->
+            ${typeof success !== 'undefined' && success ?
+                '<div class="alert success">' + success + '</div>' : ''
+            }
+
+            <!-- 서브포럼 목록 -->
+            <section class="categories-management">
+                ${subforums.length > 0 ? `
+                    <div class="categories-table">
+                        <div class="table-header">
+                            <div class="col-order">순서</div>
+                            <div class="col-name">이름</div>
+                            <div class="col-description">설명</div>
+                            <div class="col-stats">통계</div>
+                            <div class="col-status">상태</div>
+                            <div class="col-actions">작업</div>
+                        </div>
+
+                        <div id="categories-list" class="sortable-list">
+                            ${subforums.map((subforum, index) => `
+                                <div class="category-row" data-id="${subforum.id}">
+                                    <div class="col-order">
+                                        <span class="drag-handle">⋮⋮</span>
+                                        <span class="order-number">${subforum.display_order}</span>
+                                    </div>
+
+                                    <div class="col-name">
+                                        <strong>${subforum.name}</strong>
+                                        <br>
+                                        <small>ID: ${subforum.id}</small>
+                                    </div>
+
+                                    <div class="col-description">
+                                        ${subforum.description || '<em>설명 없음</em>'}
+                                    </div>
+
+                                    <div class="col-stats">
+                                        <div>게시글: ${subforum.post_count || 0}</div>
+                                        <div>댓글: ${subforum.comment_count || 0}</div>
+                                    </div>
+
+                                    <div class="col-status">
+                                        <span class="status-badge ${subforum.is_active ? 'active' : 'inactive'}">
+                                            ${subforum.is_active ? '활성' : '비활성'}
+                                        </span>
+                                    </div>
+
+                                    <div class="col-actions">
+                                        <a href="/forum/subforum/${subforum.id}"
+                                           class="btn-small secondary"
+                                           target="_blank"
+                                           title="포럼 보기">
+                                            👁️
+                                        </a>
+                                        <a href="/admin/forums/${subforum.id}/edit"
+                                           class="btn-small"
+                                           title="수정">
+                                            ✏️
+                                        </a>
+                                        <button onclick="deleteSubforum(${subforum.id}, '${subforum.name}')"
+                                                class="btn-small danger"
+                                                title="삭제"
+                                                ${subforum.post_count > 0 ? 'disabled' : ''}>
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : `
+                    <div class="empty-state">
+                        <p>아직 생성된 서브포럼이 없습니다.</p>
+                        <a href="/admin/forums/new" role="button">첫 번째 서브포럼을 생성해보세요!</a>
+                    </div>
+                `}
+            </section>
+        </main>
+
+        <style>
+            .page-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid var(--pico-muted-border-color);
+            }
+
+            .alert {
+                padding: 1rem;
+                margin-bottom: 1rem;
+                border-radius: var(--pico-border-radius);
+                border: 1px solid;
+            }
+
+            .alert.success {
+                background: var(--pico-ins-background-color);
+                border-color: var(--pico-ins-color);
+                color: var(--pico-ins-color);
+            }
+
+            .categories-table {
+                background: var(--pico-card-background-color);
+                border-radius: var(--pico-border-radius);
+                overflow: hidden;
+                box-shadow: var(--pico-card-box-shadow);
+            }
+
+            .table-header {
+                display: grid;
+                grid-template-columns: 80px 1fr 1fr 120px 80px 120px;
+                gap: 1rem;
+                padding: 1rem;
+                background: var(--pico-primary-background);
+                color: var(--pico-primary-inverse);
+                font-weight: bold;
+            }
+
+            .category-row {
+                display: grid;
+                grid-template-columns: 80px 1fr 1fr 120px 80px 120px;
+                gap: 1rem;
+                padding: 1rem;
+                border-bottom: 1px solid var(--pico-muted-border-color);
+                transition: background-color 0.2s;
+                cursor: move;
+            }
+
+            .category-row:hover {
+                background: var(--pico-secondary-background);
+            }
+
+            .category-row:last-child {
+                border-bottom: none;
+            }
+
+            .col-order {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .drag-handle {
+                cursor: grab;
+                color: var(--pico-muted-color);
+                font-size: 1.2rem;
+            }
+
+            .drag-handle:active {
+                cursor: grabbing;
+            }
+
+            .order-number {
+                font-weight: bold;
+                color: var(--pico-primary);
+            }
+
+            .col-name strong {
+                color: var(--pico-color);
+            }
+
+            .col-name small {
+                color: var(--pico-muted-color);
+            }
+
+            .col-description {
+                color: var(--pico-muted-color);
+                font-size: 0.9rem;
+                line-height: 1.3;
+            }
+
+            .col-stats {
+                font-size: 0.85rem;
+                color: var(--pico-muted-color);
+            }
+
+            .col-stats div {
+                margin-bottom: 0.25rem;
+            }
+
+            .status-badge {
+                display: inline-block;
+                padding: 0.2rem 0.5rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+
+            .status-badge.active {
+                background: var(--pico-ins-background-color);
+                color: var(--pico-ins-color);
+            }
+
+            .status-badge.inactive {
+                background: var(--pico-del-background-color);
+                color: var(--pico-del-color);
+            }
+
+            .col-actions {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+
+            .btn-small {
+                display: inline-block;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.8rem;
+                text-decoration: none;
+                border-radius: var(--pico-border-radius);
+                border: none;
+                cursor: pointer;
+                background: var(--pico-primary);
+                color: var(--pico-primary-inverse);
+            }
+
+            .btn-small.secondary {
+                background: var(--pico-secondary);
+                color: var(--pico-secondary-inverse);
+            }
+
+            .btn-small.danger {
+                background: var(--pico-del-color);
+                color: white;
+            }
+
+            .btn-small:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .btn-small:hover:not(:disabled) {
+                opacity: 0.8;
+            }
+
+            .empty-state {
+                text-align: center;
+                padding: 3rem 1rem;
+                color: var(--pico-muted-color);
+            }
+
+            .sortable-ghost {
+                opacity: 0.5;
+            }
+
+            .sortable-chosen {
+                background: var(--pico-primary-background);
+            }
+
+            /* 반응형 디자인 */
+            @media (max-width: 768px) {
+                .page-header {
+                    flex-direction: column;
+                    gap: 1rem;
+                    align-items: stretch;
+                }
+
+                .table-header, .category-row {
+                    grid-template-columns: 1fr;
+                    gap: 0.5rem;
+                }
+
+                .col-order, .col-stats, .col-status, .col-actions {
+                    font-size: 0.8rem;
+                }
+
+                .col-actions {
+                    justify-content: center;
+                }
+            }
+        </style>
+
+        <script>
+            // 서브포럼 삭제 함수
+            async function deleteSubforum(subforumId, subforumName) {
+                if (!confirm('정말로 "' + subforumName + '" 서브포럼을 삭제하시겠습니까?\\n\\n이 작업은 되돌릴 수 없습니다.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/admin/forums/' + subforumId + '/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert('오류: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('서브포럼 삭제 오류:', error);
+                    alert('서브포럼 삭제 중 오류가 발생했습니다.');
+                }
+            }
+
+            // 드래그 앤 드롭으로 순서 변경 (간단한 구현)
+            document.addEventListener('DOMContentLoaded', function() {
+                const categoriesList = document.getElementById('categories-list');
+                if (!categoriesList) return;
+
+                let draggedElement = null;
+
+                // 드래그 시작
+                categoriesList.addEventListener('dragstart', function(e) {
+                    if (e.target.classList.contains('category-row')) {
+                        draggedElement = e.target;
+                        e.target.style.opacity = '0.5';
+                    }
+                });
+
+                // 드래그 종료
+                categoriesList.addEventListener('dragend', function(e) {
+                    if (e.target.classList.contains('category-row')) {
+                        e.target.style.opacity = '';
+                        draggedElement = null;
+                    }
+                });
+
+                // 드롭 허용
+                categoriesList.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                });
+
+                // 드롭 처리
+                categoriesList.addEventListener('drop', function(e) {
+                    e.preventDefault();
+
+                    if (draggedElement && e.target.classList.contains('category-row')) {
+                        const allRows = Array.from(categoriesList.children);
+                        const draggedIndex = allRows.indexOf(draggedElement);
+                        const targetIndex = allRows.indexOf(e.target);
+
+                        if (draggedIndex !== targetIndex) {
+                            if (draggedIndex < targetIndex) {
+                                categoriesList.insertBefore(draggedElement, e.target.nextSibling);
+                            } else {
+                                categoriesList.insertBefore(draggedElement, e.target);
+                            }
+
+                            updateCategoryOrder();
+                        }
+                    }
+                });
+
+                // 카테고리 행을 드래그 가능하게 설정
+                const categoryRows = categoriesList.querySelectorAll('.category-row');
+                categoryRows.forEach(row => {
+                    row.draggable = true;
+                });
+            });
+
+            // 서브포럼 순서 업데이트
+            async function updateCategoryOrder() {
+                const rows = document.querySelectorAll('.category-row');
+                const subforums = Array.from(rows).map((row, index) => ({
+                    id: parseInt(row.dataset.id),
+                    displayOrder: index
+                }));
+
+                try {
+                    const response = await fetch('/admin/forums/reorder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ subforums: subforums })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // 순서 번호 업데이트
+                        rows.forEach((row, index) => {
+                            const orderNumber = row.querySelector('.order-number');
+                            if (orderNumber) {
+                                orderNumber.textContent = index;
+                            }
+                        });
+                    } else {
+                        alert('순서 변경 실패: ' + result.error);
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error('순서 변경 오류:', error);
+                    alert('순서 변경 중 오류가 발생했습니다.');
+                    location.reload();
+                }
+            }
+
+            // URL 파라미터에서 성공 메시지 표시
+            const urlParams = new URLSearchParams(window.location.search);
+            const successMessage = urlParams.get('success');
+            if (successMessage) {
+                // URL에서 success 파라미터 제거
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+            }
+        </script>
+    `
+}) %>

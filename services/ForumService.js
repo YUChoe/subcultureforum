@@ -1765,6 +1765,58 @@ class ForumService {
             return [];
         }
     }
+
+    /**
+     * 공개 통계 정보 조회 (메인 페이지용)
+     * @returns {Promise<Object>} 통계 정보
+     */
+    async getPublicStatistics() {
+        try {
+            const configDB = this.dbManager.getConfigDB();
+
+            // 일반 사용자 수 조회 (super_admin, moderator 제외)
+            const userCountResult = await this.dbManager.getQuery(
+                configDB,
+                'SELECT COUNT(*) as count FROM users WHERE role = ?',
+                ['user']
+            );
+
+            // 활성 서브포럼 수
+            const subforumCountResult = await this.dbManager.getQuery(
+                configDB,
+                'SELECT COUNT(*) as count FROM categories WHERE is_active = 1'
+            );
+
+            // 전체 게시글 수 (모든 서브포럼)
+            const subforums = await this.dbManager.allQuery(
+                configDB,
+                'SELECT id FROM categories WHERE is_active = 1'
+            );
+
+            let totalPosts = 0;
+            for (const subforum of subforums) {
+                try {
+                    const stats = await this.getSubforumStats(subforum.id);
+                    totalPosts += stats.post_count || 0;
+                } catch (error) {
+                    console.warn(`서브포럼 ${subforum.id} 통계 조회 실패:`, error.message);
+                }
+            }
+
+            return {
+                totalUsers: userCountResult ? userCountResult.count : 0,
+                totalSubforums: subforumCountResult ? subforumCountResult.count : 0,
+                totalPosts: totalPosts
+            };
+        } catch (error) {
+            console.error('공개 통계 조회 실패:', error);
+            return {
+                totalUsers: 0,
+                totalSubforums: 0,
+                totalPosts: 0
+            };
+        }
+    }
 }
 
 module.exports = ForumService;

@@ -1,136 +1,125 @@
-<%- include('../../layouts/main', { content: `
-<div class="container">
-    <nav aria-label="breadcrumb">
-        <ul>
-            <li><a href="/">홈</a></li>
-            <li><a href="/admin">관리자</a></li>
-            <li>차단 관리</li>
-        </ul>
-    </nav>
+<%- include('../../layouts/main', {
+    title: title,
+    body: `
+        <main class="container">
+            <header>
+                <nav aria-label="breadcrumb">
+                    <ol>
+                        <li><a href="/">홈</a></li>
+                        <li><a href="/admin">관리자</a></li>
+                        <li>차단 관리</li>
+                    </ol>
+                </nav>
 
-    <hgroup>
-        <h1>차단 관리</h1>
-        <p>차단된 사용자 목록 및 관리</p>
-    </hgroup>
+                <hgroup>
+                    <h1>차단 관리</h1>
+                    <p>차단된 사용자 목록 및 관리</p>
+                </hgroup>
+            </header>
 
-    <!-- 필터 -->
-    <article>
-        <form method="GET" action="/admin/bans">
-            <label>
-                <input
-                    type="checkbox"
-                    name="includeInactive"
-                    value="true"
-                    <%= includeInactive ? 'checked' : '' %>
-                    onchange="this.form.submit()">
-                해제된 차단 포함
-            </label>
-        </form>
-    </article>
+            <!-- 필터 -->
+            <section>
+                <form method="GET" action="/admin/bans">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="includeInactive"
+                            value="true"
+                            ${includeInactive ? 'checked' : ''}
+                            onchange="this.form.submit()">
+                        해제된 차단 포함
+                    </label>
+                </form>
+            </section>
 
-    <!-- 차단 목록 -->
-    <article>
-        <% if (bans.length === 0) { %>
-            <p style="text-align: center; color: var(--muted-color);">
-                차단된 사용자가 없습니다.
-            </p>
-        <% } else { %>
-            <table role="grid">
-                <thead>
-                    <tr>
-                        <th>사용자</th>
-                        <th>이메일</th>
-                        <th>차단 사유</th>
-                        <th>차단일</th>
-                        <th>만료일</th>
-                        <th>차단자</th>
-                        <th>상태</th>
-                        <th>작업</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% bans.forEach(ban => { %>
-                        <tr>
-                            <td><%= ban.username %></td>
-                            <td><%= ban.email %></td>
-                            <td>
-                                <small><%= ban.reason %></small>
-                            </td>
-                            <td>
-                                <small><%= new Date(ban.banned_at).toLocaleDateString('ko-KR') %></small>
-                            </td>
-                            <td>
-                                <% if (ban.expires_at) { %>
-                                    <small><%= new Date(ban.expires_at).toLocaleDateString('ko-KR') %></small>
-                                <% } else { %>
-                                    <small style="color: var(--del-color);">영구</small>
-                                <% } %>
-                            </td>
-                            <td>
-                                <small><%= ban.banned_by_username %></small>
-                            </td>
-                            <td>
-                                <% if (ban.is_active) { %>
-                                    <% if (ban.expires_at && new Date(ban.expires_at) < new Date()) { %>
-                                        <span style="color: var(--muted-color);">만료됨</span>
-                                    <% } else { %>
-                                        <span style="color: var(--del-color);">활성</span>
-                                    <% } %>
-                                <% } else { %>
-                                    <span style="color: var(--muted-color);">해제됨</span>
-                                <% } %>
-                            </td>
-                            <td>
-                                <% if (ban.is_active) { %>
-                                    <button
-                                        class="contrast outline"
-                                        style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"
-                                        onclick="unbanUser(<%= ban.user_id %>, '<%= ban.username %>')">
-                                        차단 해제
-                                    </button>
-                                <% } else { %>
-                                    <small style="color: var(--muted-color);">-</small>
-                                <% } %>
-                            </td>
-                        </tr>
-                    <% }); %>
-                </tbody>
-            </table>
-        <% } %>
-    </article>
+            <!-- 차단 목록 -->
+            <section>
+                ${bans.length === 0 ? `
+                    <p style="text-align: center; color: var(--pico-muted-color);">
+                        차단된 사용자가 없습니다.
+                    </p>
+                ` : `
+                    <table role="grid">
+                        <thead>
+                            <tr>
+                                <th>사용자</th>
+                                <th>이메일</th>
+                                <th>차단 사유</th>
+                                <th>차단일</th>
+                                <th>만료일</th>
+                                <th>차단자</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bans.map(ban => `
+                                <tr>
+                                    <td>${ban.username}</td>
+                                    <td>${ban.email}</td>
+                                    <td><small>${ban.reason}</small></td>
+                                    <td><small>${new Date(ban.banned_at).toLocaleDateString('ko-KR')}</small></td>
+                                    <td>
+                                        ${ban.expires_at ?
+                                            '<small>' + new Date(ban.expires_at).toLocaleDateString('ko-KR') + '</small>' :
+                                            '<small style="color: var(--pico-del-color);">영구</small>'
+                                        }
+                                    </td>
+                                    <td><small>${ban.banned_by_username}</small></td>
+                                    <td>
+                                        ${ban.is_active ?
+                                            (ban.expires_at && new Date(ban.expires_at) < new Date() ?
+                                                '<span style="color: var(--pico-muted-color);">만료됨</span>' :
+                                                '<span style="color: var(--pico-del-color);">활성</span>') :
+                                            '<span style="color: var(--pico-muted-color);">해제됨</span>'
+                                        }
+                                    </td>
+                                    <td>
+                                        ${ban.is_active ?
+                                            '<button class="contrast outline" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="unbanUser(' + ban.user_id + ', \'' + ban.username + '\')">차단 해제</button>' :
+                                            '<small style="color: var(--pico-muted-color);">-</small>'
+                                        }
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `}
+            </section>
 
-    <div style="margin-top: 2rem;">
-        <a href="/admin" role="button" class="secondary">관리자 대시보드로 돌아가기</a>
-        <a href="/admin/users" role="button" class="outline" style="margin-left: 1rem;">사용자 관리로 돌아가기</a>
-    </div>
-</div>
+            <div style="margin-top: 2rem;">
+                <a href="/admin" role="button" class="secondary">관리자 대시보드로 돌아가기</a>
+                <a href="/admin/users" role="button" class="outline" style="margin-left: 1rem;">사용자 관리로 돌아가기</a>
+            </div>
+        </main>
 
-<script>
-    async function unbanUser(userId, username) {
-        if (!confirm(\`\${username} 사용자의 차단을 해제하시겠습니까?\`)) {
-            return;
-        }
-
-        try {
-            const response = await fetch(\`/admin/users/\${userId}/unban\`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+        <script>
+            async function unbanUser(userId, username) {
+                if (!confirm(username + ' 사용자의 차단을 해제하시겠습니까?')) {
+                    return;
                 }
-            });
 
-            const data = await response.json();
+                try {
+                    const response = await fetch('/admin/users/' + userId + '/unban', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
 
-            if (data.success) {
-                alert('사용자 차단이 성공적으로 해제되었습니다.');
-                location.reload();
-            } else {
-                alert('오류: ' + (data.error || '차단 해제 중 오류가 발생했습니다.'));
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('사용자 차단이 성공적으로 해제되었습니다.');
+                        location.reload();
+                    } else {
+                        alert('오류: ' + (data.error || '차단 해제 중 오류가 발생했습니다.'));
+                    }
+                } catch (error) {
+                    console.error('차단 해제 오류:', error);
+                    alert('차단 해제 중 오류가 발생했습니다.');
+                }
             }
-        } catch (error) {
-            console.error('차단 해제 오류:', error);
-            alert('차단 해제 중 오류가 발생했습니다.');
-        }
-    }
-</script>
-` }) %>
+        </script>
+    `
+}) %>
