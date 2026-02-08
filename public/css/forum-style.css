@@ -181,7 +181,11 @@ nav[aria-label="breadcrumb"] a:hover {
    검색 폼
    ======================================== */
 .forum-search {
-    margin-bottom: 15px !important;
+    margin-bottom: 6px !important;
+}
+
+section.forum-search {
+    margin-bottom: 6px !important;
 }
 
 .search-form fieldset {
@@ -228,7 +232,11 @@ nav[aria-label="breadcrumb"] a:hover {
     border: 1px solid #e0e0e0 !important;
     border-radius: 0 !important;
     padding: 12px 15px !important;
-    margin-bottom: 15px !important;
+    margin-bottom: 6px !important;
+}
+
+section.forum-controls {
+    margin-bottom: 6px !important;
 }
 
 .controls-left a {
@@ -288,29 +296,17 @@ nav[aria-label="breadcrumb"] a:hover {
     border-radius: 0 !important;
 }
 
-.posts-header {
-    display: grid !important;
-    grid-template-columns: 2fr 150px 120px 140px !important;
-    gap: 15px !important;
-    padding: 12px 15px !important;
-    background: #f0f0f0 !important;
-    border-bottom: 1px solid #e0e0e0 !important;
-}
-
-.posts-header > div {
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #333 !important;
-}
-
 .post-row {
     display: grid !important;
-    grid-template-columns: 2fr 150px 120px 140px !important;
-    gap: 15px !important;
-    padding: 15px !important;
+    grid-template-columns: 70px 1fr 120px !important;
+    gap: 6px !important;
+    padding: 0 15px !important;
+    height: 50px !important;
     border-bottom: 1px solid #f0f0f0 !important;
     background: #fff !important;
     transition: background-color 0.2s !important;
+    align-items: center !important;
+    margin-bottom: 6px !important;
 }
 
 .post-row:hover {
@@ -321,98 +317,60 @@ nav[aria-label="breadcrumb"] a:hover {
     border-bottom: none !important;
 }
 
-/* 제목 */
-.post-title {
+.post-main {
     min-width: 0 !important;
+    flex: 1 !important;
 }
 
-.post-title a,
+.post-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
 .post-title-link {
-    font-size: 16px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     color: #686868 !important;
     text-decoration: none !important;
-    line-height: 24px !important;
-    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    flex-shrink: 1 !important;
 }
 
-.post-title a:hover,
 .post-title-link:hover {
     color: #4a90e2 !important;
 }
 
-.badge {
-    display: inline-block !important;
-    background: #ff6b6b !important;
-    color: #fff !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    padding: 2px 6px !important;
-    border-radius: 3px !important;
-    margin-left: 5px !important;
-    vertical-align: middle !important;
-}
-
-/* 작성자 */
-.post-author {
+.post-meta-inline {
     display: flex !important;
-    flex-direction: column !important;
     gap: 4px !important;
+    flex-shrink: 0 !important;
 }
 
-.username {
-    font-size: 13px !important;
-    color: #333 !important;
-    font-weight: 400 !important;
-}
-
-.role-badge {
-    display: inline-block !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    padding: 2px 6px !important;
-    border-radius: 3px !important;
-}
-
-.role-badge.admin {
-    background: #dc3545 !important;
-    color: #fff !important;
-}
-
-.role-badge.moderator {
-    background: #28a745 !important;
-    color: #fff !important;
-}
-
-/* 통계 */
-.post-stats {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-}
-
-.post-stats span {
-    font-size: 12px !important;
-    color: #686868 !important;
-}
-
-/* 날짜 */
-.post-date {
-    font-size: 12px !important;
-    color: #686868 !important;
-    text-align: center !important;
-}
-
-.post-date time {
-    display: block !important;
-    color: #333 !important;
-}
-
-.post-date small {
-    display: block !important;
+.comment-count,
+.view-count {
     font-size: 11px !important;
     color: #999 !important;
-    margin-top: 2px !important;
+}
+
+.post-info {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 2px !important;
+    text-align: right !important;
+}
+
+.post-date-small {
+    font-size: 11px !important;
+    color: #686868 !important;
+}
+
+.post-author-small {
+    font-size: 11px !important;
+    color: #999 !important;
 }
 
 /* ========================================
@@ -564,10 +522,6 @@ footer small {
     border-color: #333 !important;
 }
 
-[data-theme="dark"] .posts-header {
-    background: #333 !important;
-}
-
 [data-theme="dark"] .post-row {
     background: #2a2a2a !important;
     border-bottom-color: #333 !important;
@@ -577,17 +531,24 @@ footer small {
     background: #333 !important;
 }
 
-
-
-[data-theme="dark"] .post-title a,
-[data-theme="dark"] .post-title-link,
-[data-theme="dark"] .username,
-[data-theme="dark"] .post-date time {
+[data-theme="dark"] .post-title-link {
     color: #e0e0e0 !important;
 }
 
+[data-theme="dark"] .post-date-small {
+    color: #999 !important;
+}
+
+[data-theme="dark"] .post-author-small {
+    color: #666 !important;
+}
+
+[data-theme="dark"] .comment-count,
+[data-theme="dark"] .view-count {
+    color: #666 !important;
+}
+
 [data-theme="dark"] .subforum-header h1,
-[data-theme="dark"] .posts-header > div,
 [data-theme="dark"] nav a,
 [data-theme="dark"] .controls-right label {
     color: #e0e0e0 !important;
@@ -595,9 +556,6 @@ footer small {
 
 [data-theme="dark"] .subforum-header p,
 [data-theme="dark"] .subforum-stats span,
-[data-theme="dark"] .post-stats span,
-[data-theme="dark"] .post-date,
-[data-theme="dark"] .post-date small,
 [data-theme="dark"] footer small {
     color: #999 !important;
 }
@@ -1113,4 +1071,43 @@ section article footer small {
 
 [x-cloak] {
     display: none !important;
+}
+
+/* 썸네일 */
+.post-thumbnail {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.thumbnail-img {
+    width: 70px !important;
+    height: 50px !important;
+    object-fit: cover !important;
+    border-radius: 3px !important;
+    border: 1px solid #e0e0e0 !important;
+}
+
+.thumbnail-placeholder {
+    width: 70px !important;
+    height: 50px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #fafafa !important;
+    border: 1px solid #e8e8e8 !important;
+    border-radius: 3px !important;
+    font-size: 10px !important;
+    color: #d0d0d0 !important;
+}
+
+/* 다크모드 - 썸네일 */
+[data-theme="dark"] .thumbnail-img {
+    border-color: #333 !important;
+}
+
+[data-theme="dark"] .thumbnail-placeholder {
+    background: #2a2a2a !important;
+    border-color: #333 !important;
+    color: #444 !important;
 }
