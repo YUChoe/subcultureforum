@@ -64,24 +64,25 @@
                                     </h3>
                                 </header>
 
-                                <p class="category-description">
-                                    ${category.description || '포럼에 대한 설명이 없습니다.'}
-                                </p>
-
-                                <div class="category-stats">
-                                    <span class="stat">📝 ${category.post_count || 0}개 게시글</span>
-                                    <span class="stat">💬 ${category.comment_count || 0}개 댓글</span>
-                                    ${category.last_activity_at ?
-                                        '<span class="stat">🕒 ' + new Date(category.last_activity_at).toLocaleDateString('ko-KR') + '</span>' :
-                                        '<span class="stat">🕒 활동 없음</span>'
-                                    }
-                                </div>
-
-                                <footer>
-                                    <a href="/forum/subforum/${category.id}" role="button" class="outline">
-                                        포럼 입장 →
-                                    </a>
-                                </footer>
+                                ${category.recent_posts && category.recent_posts.length > 0 ? `
+                                    <div class="recent-posts-list">
+                                        ${category.recent_posts.map(post => `
+                                            <div class="recent-post-item">
+                                                <a href="/forum/subforum/${category.id}/post/${post.id}" class="post-link">
+                                                    ${post.title}
+                                                </a>
+                                                <div class="post-meta">
+                                                    <span class="post-author">${post.username}</span>
+                                                    <span class="post-date">${new Date(post.created_at).toLocaleDateString('ko-KR')}</span>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : `
+                                    <div class="no-posts">
+                                        <p>게시글이 없습니다.</p>
+                                    </div>
+                                `}
                             </article>
                         `).join('')}
                     </div>

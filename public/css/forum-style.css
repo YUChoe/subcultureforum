@@ -813,32 +813,6 @@ footer small {
     color: #4a90e2 !important;
 }
 
-.category-description {
-    font-size: 13px !important;
-    color: #686868 !important;
-    margin: 12px 0 !important;
-    line-height: 1.6 !important;
-}
-
-.category-stats {
-    display: flex !important;
-    gap: 15px !important;
-    margin: 15px 0 !important;
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-}
-
-.category-stats .stat {
-    font-size: 12px !important;
-    color: #686868 !important;
-    text-align: left !important;
-}
-
-.forum-category footer {
-    margin-top: 15px !important;
-}
-
 .forum-category footer a {
     background: #4a90e2 !important;
     color: #fff !important;
@@ -986,6 +960,35 @@ section article footer small {
     color: #e0e0e0 !important;
 }
 
+[data-theme="dark"] .recent-post-item {
+    background: #333 !important;
+    border-left-color: #4a90e2 !important;
+}
+
+[data-theme="dark"] .recent-post-item .post-link {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .recent-post-item .post-meta {
+    color: #999 !important;
+}
+
+[data-theme="dark"] .recent-post-item .post-author {
+    color: #999 !important;
+}
+
+[data-theme="dark"] .recent-post-item .post-date {
+    color: #666 !important;
+}
+
+[data-theme="dark"] .no-posts {
+    background: #333 !important;
+}
+
+[data-theme="dark"] .no-posts p {
+    color: #666 !important;
+}
+
 /* 반응형 - 메인 페이지 */
 @media (max-width: 768px) {
     .hero {
@@ -1038,4 +1041,59 @@ section article footer small {
     section .grid {
         grid-template-columns: 1fr !important;
     }
+}
+
+
+.recent-posts-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.recent-post-item {
+    padding: 10px !important;
+    background: #f9f9f9 !important;
+    border-left: 3px solid #4a90e2 !important;
+    border-radius: 3px !important;
+}
+
+.recent-post-item .post-link {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #333 !important;
+    text-decoration: none !important;
+    display: block !important;
+    margin-bottom: 5px !important;
+}
+
+.recent-post-item .post-link:hover {
+    color: #4a90e2 !important;
+}
+
+.recent-post-item .post-meta {
+    display: flex !important;
+    gap: 10px !important;
+    font-size: 12px !important;
+    color: #686868 !important;
+}
+
+.recent-post-item .post-author {
+    font-weight: 500 !important;
+}
+
+.recent-post-item .post-date {
+    color: #999 !important;
+}
+
+.no-posts {
+    padding: 30px 20px !important;
+    text-align: center !important;
+    background: #f9f9f9 !important;
+    border-radius: 3px !important;
+}
+
+.no-posts p {
+    font-size: 13px !important;
+    color: #999 !important;
+    margin: 0 !important;
 }
