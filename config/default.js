@@ -47,8 +47,8 @@ module.exports = {
 
     // 사이트 설정
     site: {
-        name: '서브컬처 포럼',
-        description: 'Node.js 기반 커뮤니티 포럼',
+        name: 'NOIZZE',
+        description: 'forum.noizze.net - 커뮤니티 포럼',
         defaultLanguage: 'ko',
         timezone: 'Asia/Seoul'
     }
