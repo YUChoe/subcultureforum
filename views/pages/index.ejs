@@ -128,33 +128,7 @@
                 </section>
             ` : ''}
 
-            <!-- 최근 활동 게시글 -->
-            ${recentActivityPosts && recentActivityPosts.length > 0 ? `
-                <section>
-                    <h2>⚡ 최근 활동</h2>
-                    <div class="grid">
-                        ${recentActivityPosts.map(post => `
-                            <article>
-                                <header>
-                                    <h4>
-                                        <a href="/forum/subforum/${post.category_id}/post/${post.id}">
-                                            ${post.title}
-                                        </a>
-                                    </h4>
-                                </header>
-                                <footer>
-                                    <small>
-                                        ${post.subforum_name || ''} |
-                                        ${post.username || '알 수 없음'} |
-                                        최근 댓글: ${post.last_commenter || '없음'} |
-                                        ${new Date(post.last_comment_at).toLocaleDateString('ko-KR')}
-                                    </small>
-                                </footer>
-                            </article>
-                        `).join('')}
-                    </div>
-                </section>
-            ` : ''}
+
         </main>
     `
 }) %>

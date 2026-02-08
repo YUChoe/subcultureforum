@@ -36,8 +36,6 @@ router.get('/', async (req, res) => {
                         [category.id]
                     );
 
-                    console.log(`카테고리 ${category.id} (${category.name}) 게시글 수:`, posts.length);
-
                     // 사용자 정보 추가
                     const postsWithUserInfo = await Promise.all(
                         posts.map(async (post) => {

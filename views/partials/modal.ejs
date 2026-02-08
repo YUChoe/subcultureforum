@@ -17,7 +17,8 @@
     }
 }"
 @keydown.escape.window="closeModal()"
-@modal-open.window="openModal($event.detail.title, $event.detail.content, $event.detail.actions)">
+@modal-open.window="openModal($event.detail.title, $event.detail.content, $event.detail.actions)"
+x-cloak>
 
     <!-- 모달 오버레이 -->
     <div x-show="showModal"

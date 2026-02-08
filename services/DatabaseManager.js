@@ -163,7 +163,6 @@ class DatabaseManager {
 
                 try {
                     await this.createForumTables(db);
-                    console.log(`Forum 데이터베이스 ${categoryId} 초기화 완료`);
                     resolve(db);
                 } catch (error) {
                     reject(error);
@@ -186,8 +185,6 @@ class DatabaseManager {
                     await this.runQuery(db, statement);
                 }
             }
-
-            console.log('Forum 데이터베이스 스키마 템플릿 적용 완료');
         } catch (error) {
             console.error('Forum 스키마 템플릿 적용 실패:', error);
             throw error;

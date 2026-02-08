@@ -3,6 +3,11 @@ const AuthService = require('../services/AuthService');
 // AuthService 인스턴스
 const authService = new AuthService();
 
+// JSON 요청 여부 확인 헬퍼 함수
+const isJsonRequest = (req) => {
+    return req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1);
+};
+
 // 세션 검증 및 사용자 정보 로드 미들웨어
 const loadUser = async (req, res, next) => {
     try {
@@ -26,7 +31,7 @@ const loadUser = async (req, res, next) => {
 // 로그인 필요 미들웨어
 const requireLogin = (req, res, next) => {
     if (!req.user) {
-        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
             return res.status(401).json({ error: '로그인이 필요합니다.' });
         }
         return res.redirect('/auth/login');
@@ -37,7 +42,7 @@ const requireLogin = (req, res, next) => {
 // 관리자 권한 필요 미들웨어
 const requireAdmin = async (req, res, next) => {
     if (!req.user) {
-        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        if (isJsonRequest(req)) {
             return res.status(401).json({ error: '로그인이 필요합니다.' });
         }
         return res.redirect('/auth/login');
@@ -46,7 +51,7 @@ const requireAdmin = async (req, res, next) => {
     try {
         const hasPermission = await authService.checkPermission(req.user.id, 'admin_site');
         if (!hasPermission) {
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
             }
             return res.status(403).render('pages/error', {
@@ -60,7 +65,7 @@ const requireAdmin = async (req, res, next) => {
         next();
     } catch (error) {
         console.error('권한 확인 오류:', error);
-        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        if (isJsonRequest(req)) {
             return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
         }
         return res.status(500).render('pages/error', {
@@ -77,7 +82,7 @@ const requireAdmin = async (req, res, next) => {
 const requireModerator = (categoryId = null) => {
     return async (req, res, next) => {
         if (!req.user) {
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(401).json({ error: '로그인이 필요합니다.' });
             }
             return res.redirect('/auth/login');
@@ -96,7 +101,7 @@ const requireModerator = (categoryId = null) => {
             }
 
             if (!targetCategoryId) {
-                if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+                if (isJsonRequest(req)) {
                     return res.status(400).json({ error: '서브포럼 ID가 필요합니다.' });
                 }
                 return res.status(400).render('pages/error', {
@@ -115,7 +120,7 @@ const requireModerator = (categoryId = null) => {
             );
 
             if (!hasPermission) {
-                if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+                if (isJsonRequest(req)) {
                     return res.status(403).json({
                         error: `서브포럼 ${targetCategoryId}의 모더레이터 권한이 필요합니다.`
                     });
@@ -134,7 +139,7 @@ const requireModerator = (categoryId = null) => {
             next();
         } catch (error) {
             console.error('모더레이터 권한 확인 오류:', error);
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
             }
             return res.status(500).render('pages/error', {
@@ -152,7 +157,7 @@ const requireModerator = (categoryId = null) => {
 const requireOwnerOrModerator = (getResourceOwner, categoryId = null) => {
     return async (req, res, next) => {
         if (!req.user) {
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(401).json({ error: '로그인이 필요합니다.' });
             }
             return res.redirect('/auth/login');
@@ -184,7 +189,7 @@ const requireOwnerOrModerator = (getResourceOwner, categoryId = null) => {
                 return next();
             }
 
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(403).json({ error: '권한이 없습니다.' });
             }
 
@@ -197,7 +202,7 @@ const requireOwnerOrModerator = (getResourceOwner, categoryId = null) => {
             });
         } catch (error) {
             console.error('권한 확인 오류:', error);
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
             }
 
@@ -216,7 +221,7 @@ const requireOwnerOrModerator = (getResourceOwner, categoryId = null) => {
 const requirePermission = (action, resourceId = null) => {
     return async (req, res, next) => {
         if (!req.user) {
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(401).json({ error: '로그인이 필요합니다.' });
             }
             return res.redirect('/auth/login');
@@ -231,7 +236,7 @@ const requirePermission = (action, resourceId = null) => {
             );
 
             if (!hasPermission) {
-                if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+                if (isJsonRequest(req)) {
                     return res.status(403).json({ error: '권한이 없습니다.' });
                 }
                 return res.status(403).render('pages/error', {
@@ -245,7 +250,7 @@ const requirePermission = (action, resourceId = null) => {
             next();
         } catch (error) {
             console.error('권한 확인 오류:', error);
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
             }
             return res.status(500).render('pages/error', {
@@ -263,7 +268,7 @@ const requirePermission = (action, resourceId = null) => {
 const requireRole = (requiredRole) => {
     return async (req, res, next) => {
         if (!req.user) {
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(401).json({ error: '로그인이 필요합니다.' });
             }
             return res.redirect('/auth/login');
@@ -281,7 +286,7 @@ const requireRole = (requiredRole) => {
             const requiredRoleLevel = roleHierarchy[requiredRole] || 0;
 
             if (userRoleLevel < requiredRoleLevel) {
-                if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+                if (isJsonRequest(req)) {
                     return res.status(403).json({
                         error: `${requiredRole} 권한이 필요합니다.`
                     });
@@ -297,7 +302,7 @@ const requireRole = (requiredRole) => {
             next();
         } catch (error) {
             console.error('역할 확인 오류:', error);
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
             }
             return res.status(500).render('pages/error', {
@@ -440,7 +445,7 @@ const checkUserBan = async (req, res, next) => {
             // 세션 삭제
             req.session.destroy();
 
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(403).json({
                     error: '계정이 차단되었습니다. 관리자에게 문의하세요.'
                 });
@@ -465,7 +470,7 @@ const checkUserBan = async (req, res, next) => {
 // 카테고리별 모더레이터 권한 확인 (동적)
 const requireCategoryModerator = async (req, res, next) => {
     if (!req.user) {
-        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        if (isJsonRequest(req)) {
             return res.status(401).json({ error: '로그인이 필요합니다.' });
         }
         return res.redirect('/auth/login');
@@ -475,7 +480,7 @@ const requireCategoryModerator = async (req, res, next) => {
         const categoryId = req.params.categoryId || req.body.categoryId;
 
         if (!categoryId) {
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(400).json({ error: '카테고리 ID가 필요합니다.' });
             }
             return res.status(400).render('pages/error', {
@@ -501,7 +506,7 @@ const requireCategoryModerator = async (req, res, next) => {
         );
 
         if (!isModerator) {
-            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            if (isJsonRequest(req)) {
                 return res.status(403).json({
                     error: '해당 카테고리의 모더레이터 권한이 필요합니다.'
                 });
@@ -518,7 +523,7 @@ const requireCategoryModerator = async (req, res, next) => {
         next();
     } catch (error) {
         console.error('카테고리 모더레이터 권한 확인 오류:', error);
-        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        if (isJsonRequest(req)) {
             return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
         }
         return res.status(500).render('pages/error', {
