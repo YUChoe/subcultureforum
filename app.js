@@ -12,7 +12,7 @@ const adminRouter = require('./routes/admin');
 const DatabaseManager = require('./services/DatabaseManager');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8888;
 
 // 데이터베이스 매니저 인스턴스 가져오기
 const dbManager = DatabaseManager.getInstance();
