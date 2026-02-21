@@ -1,22 +1,22 @@
-# 구현 계획: SEO 최적화
 
+# 구현 계획: SEO 최적화
 ## 개요
 
 Node.js + Express.js 기반 커뮤니티 포럼의 검색엔진 최적화(SEO) 기능을 구현합니다. 메타 태그 생성, Open Graph/Twitter Card 지원, 구조화된 데이터(JSON-LD), sitemap.xml, robots.txt, 게시글 대표 이미지 자동 생성 등을 포함합니다.
 
 ## 태스크
 
-- [ ] 1. 데이터베이스 스키마 및 초기 설정
-  - [ ] 1.1 cache.db 데이터베이스 파일 생성 및 cache 테이블 스키마 작성
+- [x] 1. 데이터베이스 스키마 및 초기 설정
+  - [x] 1.1 cache.db 데이터베이스 파일 생성 및 cache 테이블 스키마 작성
     - database/cache.db 파일 생성
     - database/schema/cache_schema.sql 작성 (cache 테이블, 인덱스, 트리거)
     - 요구사항: 7.3, 7.4
   
-  - [ ] 1.2 og_images 테이블 스키마 작성 (config.db)
+  - [x] 1.2 og_images 테이블 스키마 작성 (config.db)
     - database/schema/seo_schema.sql 작성 (og_images 테이블, 인덱스)
     - 요구사항: 1.8, 11.8
   
-  - [ ] 1.3 데이터베이스 마이그레이션 스크립트 작성
+  - [x] 1.3 데이터베이스 마이그레이션 스크립트 작성
     - cache.db 초기화 스크립트
     - config.db에 og_images 테이블 추가
     - site_settings 테이블에 SEO 설정 추가
