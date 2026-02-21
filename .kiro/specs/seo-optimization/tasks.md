@@ -22,8 +22,8 @@ Node.js + Express.js 기반 커뮤니티 포럼의 검색엔진 최적화(SEO) �
     - site_settings 테이블에 SEO 설정 추가
     - 요구사항: 1.1, 10.1, 10.2
 
-- [ ] 2. SEO 유틸리티 모듈 구현
-  - [ ] 2.1 MetaTagGenerator 클래스 구현
+- [x] 2. SEO 유틸리티 모듈 구현
+  - [x] 2.1 MetaTagGenerator 클래스 구현
     - utils/MetaTagGenerator.js 생성
     - generateBasicMeta, generateOpenGraphMeta, generateTwitterCardMeta 메서드
     - generatePostMeta, generateCategoryMeta, generateHomeMeta 메서드
@@ -39,7 +39,7 @@ Node.js + Express.js 기반 커뮤니티 포럼의 검색엔진 최적화(SEO) �
     - Property 6: 게시글 OG 이미지 URL 형식
     - 검증: 요구사항 1.2, 1.3, 1.4, 1.5, 2.2, 2.5, 2.6, 2.7
   
-  - [ ] 2.3 StructuredDataGenerator 클래스 구현
+  - [x] 2.3 StructuredDataGenerator 클래스 구현
     - utils/StructuredDataGenerator.js 생성
     - generateWebSiteSchema, generateArticleSchema 메서드
     - generateBreadcrumbSchema, generateCollectionPageSchema 메서드
@@ -53,7 +53,7 @@ Node.js + Express.js 기반 커뮤니티 포럼의 검색엔진 최적화(SEO) �
     - Property 28: 구조화된 데이터 유효성
     - 검증: 요구사항 3.4, 3.5, 3.7, 12.3
   
-  - [ ] 2.5 SitemapGenerator 클래스 구현
+  - [x] 2.5 SitemapGenerator 클래스 구현
     - utils/SitemapGenerator.js 생성
     - generateSitemap, getCachedSitemap, saveCachedSitemap 메서드
     - isCacheValid, createURLEntry 메서드
@@ -68,7 +68,7 @@ Node.js + Express.js 기반 커뮤니티 포럼의 검색엔진 최적화(SEO) �
     - Property 17: Sitemap 캐싱 동작
     - 검증: 요구사항 5.2, 5.5, 5.6, 5.7, 5.8, 5.9, 7.3
   
-  - [ ] 2.7 OGImageGenerator 클래스 구현
+  - [x] 2.7 OGImageGenerator 클래스 구현
     - utils/OGImageGenerator.js 생성
     - generateImage, saveImage, getImage 메서드
     - regenerateImage, getDefaultImage, wrapText 메서드

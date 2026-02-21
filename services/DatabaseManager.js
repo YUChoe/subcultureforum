@@ -5,6 +5,7 @@ const fs = require('fs').promises;
 class DatabaseManager {
     constructor() {
         this.configDB = null;
+        this.cacheDB = null;
         this.forumDBs = new Map(); // categoryId -> database connection
         this.dbPath = path.join(__dirname, '../database');
         this.isInitialized = false;
@@ -21,6 +22,9 @@ class DatabaseManager {
 
             // Config 데이터베이스 초기화
             await this.initializeConfigDB();
+
+            // Cache 데이터베이스 초기화
+            await this.initializeCacheDB();
 
             this.isInitialized = true;
             console.log('DatabaseManager 초기화 완료');
@@ -132,6 +136,45 @@ class DatabaseManager {
         }
 
         console.log('Config 데이터베이스 테이블 생성 완료');
+    }
+
+    async initializeCacheDB() {
+        return new Promise((resolve, reject) => {
+            const cacheDBPath = path.join(this.dbPath, 'cache.db');
+
+            this.cacheDB = new sqlite3.Database(cacheDBPath, (err) => {
+                if (err) {
+                    console.error('Cache DB 연결 실패:', err);
+                    reject(err);
+                    return;
+                }
+
+                console.log('Cache 데이터베이스 연결 성공');
+                this.createCacheTables()
+                    .then(() => resolve())
+                    .catch(reject);
+            });
+        });
+    }
+
+    async createCacheTables() {
+        const schemaPath = path.join(__dirname, '../database/schema/cache_schema.sql');
+        
+        try {
+            const schemaSQL = await fs.readFile(schemaPath, 'utf8');
+            const statements = this.parseSQLStatements(schemaSQL);
+
+            for (const statement of statements) {
+                if (statement.trim().length > 0) {
+                    await this.runQuery(this.cacheDB, statement);
+                }
+            }
+
+            console.log('Cache 데이터베이스 테이블 생성 완료');
+        } catch (error) {
+            console.error('Cache 스키마 적용 실패:', error);
+            throw error;
+        }
     }
 
     async getForumDB(categoryId) {
@@ -260,6 +303,13 @@ class DatabaseManager {
         return this.configDB;
     }
 
+    getCacheDB() {
+        if (!this.isInitialized) {
+            throw new Error('DatabaseManager가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.');
+        }
+        return this.cacheDB;
+    }
+
     runQuery(db, sql, params = []) {
         return new Promise((resolve, reject) => {
             db.run(sql, params, function(err) {
@@ -353,6 +403,17 @@ class DatabaseManager {
                     });
                 });
                 this.configDB = null;
+            }
+
+            // Cache DB 닫기
+            if (this.cacheDB) {
+                await new Promise((resolve, reject) => {
+                    this.cacheDB.close((err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+                this.cacheDB = null;
             }
 
             // Forum DB들 닫기
