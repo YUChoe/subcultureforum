@@ -85,8 +85,8 @@ Node.js + Express.js 기반 커뮤니티 포럼의 검색엔진 최적화(SEO) �
     - Property 27: 게시글 수정 시 이미지 재생성
     - 검증: 요구사항 1.6, 1.8, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8, 11.9, 11.10, 11.11
 
-- [ ] 3. SEO 서비스 레이어 구현
-  - [ ] 3.1 SEOService 클래스 구현
+- [x] 3. SEO 서비스 레이어 구현
+  - [x] 3.1 SEOService 클래스 구현
     - services/SEOService.js 생성
     - generatePageSEO, generateMetaTags, generateStructuredData 메서드
     - generateCanonicalURL 메서드
