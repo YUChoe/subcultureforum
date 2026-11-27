@@ -373,6 +373,7 @@ section.forum-controls {
 
 .post-row:hover {
     background: #fafafa !important;
+    transform: none !important;
 }
 
 .post-row:last-child {
