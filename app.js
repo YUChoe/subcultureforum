@@ -59,6 +59,13 @@ async function initializeApp() {
         // 뷰에서 사용자 입력을 안전하게 출력하기 위한 헬퍼 (escapeHtml, jsAttr, jsString)
         Object.assign(app.locals, require('./utils/template-helpers'));
 
+        // 리버스 프록시(nginx 등) 뒤에서 HTTPS 를 종료하는 경우 TRUST_PROXY 를 설정한다.
+        // 숫자(프록시 홉 수) 또는 true/false/IP 목록 등 express 의 'trust proxy' 값을 그대로 사용한다.
+        if (process.env.TRUST_PROXY) {
+            const v = process.env.TRUST_PROXY;
+            app.set('trust proxy', v === 'true' ? true : v === 'false' ? false : /^\d+$/.test(v) ? parseInt(v, 10) : v);
+        }
+
         // 미들웨어 설정
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
@@ -70,7 +77,8 @@ async function initializeApp() {
             resave: false,
             saveUninitialized: false,
             cookie: {
-                secure: false, // HTTPS에서는 true로 설정
+                // 프로덕션에서는 HTTPS 전용 쿠키. HTTP 로 운영해야 하면 COOKIE_SECURE=false 로 끌 수 있다.
+                secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProduction,
                 httpOnly: true,
                 sameSite: 'lax', // 다른 사이트에서의 POST 요청에 쿠키가 전송되지 않도록 (CSRF 완화)
                 maxAge: 24 * 60 * 60 * 1000 // 24시간
