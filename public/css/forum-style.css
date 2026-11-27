@@ -90,7 +90,7 @@ main > main {
 nav[aria-label="breadcrumb"] {
     background: transparent !important;
     border: none !important;
-    padding: 0 0 15px 0 !important;
+    padding: 8px 15px !important;
     margin: 0 !important;
 }
 
@@ -122,6 +122,7 @@ nav[aria-label="breadcrumb"] a {
     color: #4a90e2 !important;
     text-decoration: none !important;
     padding: 0 !important;
+    margin: 0 !important;
 }
 
 nav[aria-label="breadcrumb"] a:hover {
