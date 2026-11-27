@@ -1,7 +1,7 @@
 module.exports = {
     // 서버 설정
     server: {
-        port: process.env.PORT || 8888,
+        port: process.env.PORT || 8000,
         host: process.env.HOST || 'localhost'
     },
 
