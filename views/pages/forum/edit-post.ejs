@@ -3,12 +3,12 @@
     body: `
         <main class="container">
             <nav aria-label="breadcrumb">
-                <ul>
+                <ol>
                     <li><a href="/">홈</a></li>
                     <li><a href="/forum/subforum/${subforum.id}">${escapeHtml(subforum.name)}</a></li>
                     <li><a href="/forum/subforum/${subforum.id}/post/${post.id}">${escapeHtml(post.title)}</a></li>
                     <li>수정</li>
-                </ul>
+                </ol>
             </nav>
 
             <article>
