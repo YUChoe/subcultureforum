@@ -402,6 +402,12 @@
             overflow-x: auto;
         }
 
+        /* 표 셀은 글자 단위로 줄바꿈하지 않는다 (좁은 화면에서 열이 한 글자 폭으로 찌그러지는 것 방지, 표 자체가 가로 스크롤됨) */
+        .markdown-content th,
+        .markdown-content td {
+            overflow-wrap: normal;
+        }
+
         .markdown-content pre {
             max-width: 100%;
         }
