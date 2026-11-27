@@ -315,6 +315,13 @@ section.forum-controls {
     min-width: 0 !important;
 }
 
+.posts-header > div {
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+}
+
 .post-author .username {
     display: block !important;
     overflow: hidden !important;
