@@ -619,6 +619,11 @@ footer small {
     border-color: #333 !important;
 }
 
+[data-theme="dark"] .posts-header {
+    background: #333 !important;
+    border-bottom: 1px solid #444 !important;
+}
+
 [data-theme="dark"] .post-row {
     background: #2a2a2a !important;
     border-bottom-color: #333 !important;
