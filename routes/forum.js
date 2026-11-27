@@ -16,8 +16,9 @@ router.get('/category/:id', (req, res) => {
 router.get('/subforum/:id', async (req, res) => {
     try {
         const subforumId = parseInt(req.params.id);
-        const sortBy = req.query.sort || 'created_at'; // 기본값: 최신글 순
-        const page = parseInt(req.query.page) || 1;
+        // 잘못된 sort/page 값은 기본값으로 대체 (이전에는 sort 가 잘못되면 500 오류)
+        const sortBy = ['created_at', 'last_comment_at'].includes(req.query.sort) ? req.query.sort : 'created_at'; // 기본값: 최신글 순
+        const page = Math.max(1, parseInt(req.query.page) || 1);
 
         // 서브포럼 정보 조회
         const subforum = await forumService.getSubforumById(subforumId);
@@ -594,7 +595,7 @@ router.get('/search', async (req, res) => {
         const query = req.query.q || '';
         const subforumId = req.query.subforum ? parseInt(req.query.subforum) : null;
         const sortBy = req.query.sort || 'relevance';
-        const page = parseInt(req.query.page) || 1;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
 
         // 서브포럼 목록 조회 (필터 옵션용)
         const subforums = await forumService.getSubforums();
