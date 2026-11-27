@@ -27,6 +27,9 @@ async function initializeApp() {
         app.set('view engine', 'ejs');
         app.set('views', path.join(__dirname, 'views'));
 
+        // 뷰에서 사용자 입력을 안전하게 출력하기 위한 헬퍼 (escapeHtml, jsAttr, jsString)
+        Object.assign(app.locals, require('./utils/template-helpers'));
+
         // 미들웨어 설정
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));

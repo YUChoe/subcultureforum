@@ -1,6 +1,6 @@
 <div class="error-page" x-data="{
-    errorCode: '<%= error.status %>',
-    errorMessage: '<%= error.message %>',
+    errorCode: <%= JSON.stringify(String(error.status)) %>,
+    errorMessage: <%= JSON.stringify(String(error.message)) %>,
     getErrorEmoji() {
         switch(this.errorCode) {
             case '404': return '🔍';

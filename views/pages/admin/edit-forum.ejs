@@ -17,7 +17,7 @@
 
             <!-- 오류 메시지 -->
             ${error ?
-                '<div class="alert error">' + error + '</div>' : ''
+                '<div class="alert error">' + escapeHtml(error) + '</div>' : ''
             }
 
             <section class="forum-form">
@@ -30,7 +30,7 @@
                             type="text"
                             id="name"
                             name="name"
-                            value="${subforum.name || ''}"
+                            value="${escapeHtml(subforum.name)}"
                             placeholder="예: 자유게시판, 질문과 답변"
                             required
                             maxlength="100"
@@ -46,7 +46,7 @@
                             rows="3"
                             placeholder="서브포럼에 대한 간단한 설명을 입력하세요"
                             maxlength="500"
-                        >${subforum.description || ''}</textarea>
+                        >${escapeHtml(subforum.description)}</textarea>
                         <small>최대 500자까지 입력 가능합니다.</small>
                     </div>
 

@@ -25,7 +25,7 @@
                             id="search"
                             name="search"
                             placeholder="사용자명 또는 이메일 검색"
-                            value="${filters.search || ''}">
+                            value="${escapeHtml(filters.search)}">
                     </label>
                 </div>
                 <div>
@@ -66,8 +66,8 @@
                     ${users.map(user => `
                         <tr>
                             <td>${user.id}</td>
-                            <td>${user.username}</td>
-                            <td>${user.email}</td>
+                            <td>${escapeHtml(user.username)}</td>
+                            <td>${escapeHtml(user.email)}</td>
                             <td>
                                 ${user.role === 'super_admin' ? '<span style="color: var(--primary);">슈퍼 관리자</span>' :
                                   user.role === 'moderator' ? '<span style="color: var(--secondary);">모더레이터</span>' :
@@ -86,21 +86,21 @@
                                         <button
                                             class="contrast outline"
                                             style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"
-                                            onclick="unbanUser(${user.id}, '${user.username}')">
+                                            onclick="unbanUser(${user.id}, ${jsAttr(user.username)})">
                                             차단 해제
                                         </button>
                                     ` : user.role !== 'super_admin' ? `
                                         <button
                                             class="outline"
                                             style="padding: 0.25rem 0.5rem; font-size: 0.875rem;"
-                                            onclick="showBanModal(${user.id}, '${user.username}')">
+                                            onclick="showBanModal(${user.id}, ${jsAttr(user.username)})">
                                             차단
                                         </button>
                                     ` : ''}
                                 </div>
                                 ${user.is_banned ? `
                                     <small style="color: var(--del-color); display: block; margin-top: 0.25rem;">
-                                        차단됨: ${user.ban_reason}
+                                        차단됨: ${escapeHtml(user.ban_reason)}
                                         ${user.expires_at ? `(만료: ${new Date(user.expires_at).toLocaleDateString('ko-KR')})` : '(영구)'}
                                     </small>
                                 ` : ''}
@@ -115,7 +115,7 @@
                     <ul style="display: flex; justify-content: center; list-style: none; padding: 0; gap: 0.5rem;">
                         ${pagination.has_prev ? `
                             <li>
-                                <a href="?page=${pagination.current_page - 1}${filters.search ? '&search=' + filters.search : ''}${filters.role ? '&role=' + filters.role : ''}">
+                                <a href="?page=${pagination.current_page - 1}${filters.search ? '&search=' + encodeURIComponent(filters.search) : ''}${filters.role ? '&role=' + encodeURIComponent(filters.role) : ''}">
                                     이전
                                 </a>
                             </li>
@@ -129,7 +129,7 @@
                                 if (i === pagination.current_page) {
                                     pages += '<li><strong>' + i + '</strong></li>';
                                 } else {
-                                    pages += '<li><a href="?page=' + i + (filters.search ? '&search=' + filters.search : '') + (filters.role ? '&role=' + filters.role : '') + '">' + i + '</a></li>';
+                                    pages += '<li><a href="?page=' + i + (filters.search ? '&search=' + encodeURIComponent(filters.search) : '') + (filters.role ? '&role=' + encodeURIComponent(filters.role) : '') + '">' + i + '</a></li>';
                                 }
                             }
                             return pages;
@@ -137,7 +137,7 @@
 
                         ${pagination.has_next ? `
                             <li>
-                                <a href="?page=${pagination.current_page + 1}${filters.search ? '&search=' + filters.search : ''}${filters.role ? '&role=' + filters.role : ''}">
+                                <a href="?page=${pagination.current_page + 1}${filters.search ? '&search=' + encodeURIComponent(filters.search) : ''}${filters.role ? '&role=' + encodeURIComponent(filters.role) : ''}">
                                     다음
                                 </a>
                             </li>

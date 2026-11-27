@@ -12,7 +12,7 @@
                     ${error ? `
                         <div class="alert alert-error">
                             <span class="alert-icon">⚠️</span>
-                            <span class="alert-message">${error}</span>
+                            <span class="alert-message">${escapeHtml(error)}</span>
                         </div>
                     ` : ''}
 

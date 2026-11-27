@@ -4,23 +4,23 @@
         <nav aria-label="breadcrumb">
             <ul>
                 <li><a href="/">홈</a></li>
-                <li><a href="/forum/subforum/${subforum.id}">${subforum.name}</a></li>
-                <li>${post.title}</li>
+                <li><a href="/forum/subforum/${subforum.id}">${escapeHtml(subforum.name)}</a></li>
+                <li>${escapeHtml(post.title)}</li>
             </ul>
         </nav>
 
         <!-- 게시글 내용 -->
         <article class="post-content">
             <header class="post-header">
-                <h1 class="post-title">${post.title}</h1>
+                <h1 class="post-title">${escapeHtml(post.title)}</h1>
                 <div class="post-meta">
                     <div class="author-info">
                         <div class="author-avatar">
-                            ${post.username.charAt(0).toUpperCase()}
+                            ${escapeHtml(post.username.charAt(0).toUpperCase())}
                         </div>
                         <div class="author-details">
                             <div class="author-name">
-                                ${post.username}
+                                ${escapeHtml(post.username)}
                                 ${post.role === 'super_admin' ? '<span class="badge admin">관리자</span>' : ''}
                                 ${post.role === 'moderator' ? '<span class="badge moderator">모더레이터</span>' : ''}
                             </div>
@@ -42,7 +42,7 @@
 
             <div class="post-body">
                 <div class="markdown-content">
-                    ${post.content_html || post.content.replace(/\\n/g, '<br>')}
+                    ${post.content_html || escapeHtml(post.content).replace(/\\n/g, '<br>')}
                 </div>
 
                 ${post.attachments && post.attachments.length > 0 ? `
@@ -53,12 +53,12 @@
                             <div class="attachment-item">
                                 <img
                                     src="/forum/subforum/${subforum.id}/attachment/${attachment.id}"
-                                    alt="${attachment.original_filename}"
-                                    title="${attachment.original_filename}"
+                                    alt="${escapeHtml(attachment.original_filename)}"
+                                    title="${escapeHtml(attachment.original_filename)}"
                                     loading="lazy"
                                 >
                                 <div class="attachment-info">
-                                    <small>${attachment.original_filename}</small>
+                                    <small>${escapeHtml(attachment.original_filename)}</small>
                                     <small>${Math.round(attachment.file_size / 1024)}KB</small>
                                 </div>
                             </div>
@@ -121,11 +121,11 @@
                     <header class="comment-header">
                         <div class="comment-author">
                             <div class="comment-avatar">
-                                ${comment.username.charAt(0).toUpperCase()}
+                                ${escapeHtml(comment.username.charAt(0).toUpperCase())}
                             </div>
                             <div>
                                 <div class="comment-author-name">
-                                    ${comment.username}
+                                    ${escapeHtml(comment.username)}
                                     ${comment.role === 'super_admin' ? '<span class="badge admin">관리자</span>' : ''}
                                     ${comment.role === 'moderator' ? '<span class="badge moderator">모더레이터</span>' : ''}
                                 </div>
@@ -138,7 +138,7 @@
                         </div>
                     </header>
                     <div class="comment-body">
-                        <p>${comment.content.replace(/\\n/g, '<br>')}</p>
+                        <p>${escapeHtml(comment.content).replace(/\\n/g, '<br>')}</p>
                     </div>
                     ${user && (user.id === comment.user_id || user.role === 'moderator' || user.role === 'super_admin') ? `
                     <footer class="comment-actions">

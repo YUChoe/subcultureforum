@@ -92,7 +92,11 @@ function extractPlainText(markdown, maxLength = 150) {
         const html = marked(markdown);
 
         // HTML 태그 제거
-        const plainText = html.replace(/<[^>]*>/g, '');
+        // 태그 제거 후 marked 가 만든 HTML 엔티티를 원문으로 되돌린다 (출력 시 뷰에서 이스케이프)
+        const plainText = html.replace(/<[^>]*>/g, '')
+            .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+            .replace(/&amp;/g, '&');
 
         // 연속된 공백을 하나로 변환
         const cleanText = plainText.replace(/\s+/g, ' ').trim();
