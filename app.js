@@ -75,6 +75,9 @@ async function initializeApp() {
         app.use(express.urlencoded({ extended: true }));
         app.use(express.static(path.join(__dirname, 'public')));
 
+        // robots.txt, sitemap (세션/권한 검사 이전에 공개 제공)
+        app.use('/', require('./routes/seo'));
+
         // 세션 설정
         // 파일 기반 세션 저장소: 서버를 재시작해도 로그인이 유지되고, 메모리에 세션이 계속 쌓이지 않는다.
         // 저장 위치는 SESSION_DIR (기본값: 프로젝트의 ./sessions). 만료된 세션 파일은 reapInterval 마다 삭제한다.
