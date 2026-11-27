@@ -2,11 +2,11 @@
     title: title,
     body: `
         <nav aria-label="breadcrumb">
-            <ul>
+            <ol>
                 <li><a href="/">홈</a></li>
                 <li><a href="/forum/subforum/${subforum.id}">${escapeHtml(subforum.name)}</a></li>
                 <li>${escapeHtml(post.title)}</li>
-            </ul>
+            </ol>
         </nav>
 
         <!-- 게시글 내용 -->
