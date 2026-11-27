@@ -386,6 +386,16 @@ router.post('/subforum/:subforumId/post/:postId/edit',
             });
         }
 
+        if (post.user_id !== req.user.id) {
+            return res.status(403).render('pages/error', {
+                title: '권한이 없습니다',
+                error: {
+                    status: 403,
+                    message: '게시글 수정 권한이 없습니다.'
+                }
+            });
+        }
+
         if (!errors.isEmpty() || req.uploadError) {
             return res.render('pages/forum/edit-post', {
                 title: `게시글 수정 - ${post.title}`,
@@ -419,6 +429,13 @@ router.post('/subforum/:subforumId/post/:postId/edit',
         res.redirect(`/forum/subforum/${subforumId}/post/${postId}`);
     } catch (error) {
         console.error('게시글 수정 오류:', error);
+
+        if (error.status === 403 || error.status === 404) {
+            return res.status(error.status).render('pages/error', {
+                title: error.status === 403 ? '권한이 없습니다' : '게시글을 찾을 수 없습니다',
+                error: { status: error.status, message: error.message }
+            });
+        }
 
         try {
             const postId = parseInt(req.params.postId);
@@ -466,7 +483,7 @@ router.post('/subforum/:subforumId/post/:postId/delete', async (req, res) => {
         res.json({ success: true, message: '게시글이 삭제되었습니다.' });
     } catch (error) {
         console.error('게시글 삭제 오류:', error);
-        res.status(500).json({ error: error.message || '게시글 삭제 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '게시글 삭제 중 오류가 발생했습니다.' });
     }
 });
 
@@ -499,7 +516,7 @@ router.post('/subforum/:subforumId/post/:postId/comment', commentCreateLimiter, 
         res.json({ success: true, message: '댓글이 작성되었습니다.', commentId: commentId });
     } catch (error) {
         console.error('댓글 작성 오류:', error);
-        res.status(500).json({ error: error.message || '댓글 작성 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '댓글 작성 중 오류가 발생했습니다.' });
     }
 });
 
@@ -531,7 +548,7 @@ router.put('/subforum/:subforumId/comment/:commentId', [
         res.json({ success: true, message: '댓글이 수정되었습니다.' });
     } catch (error) {
         console.error('댓글 수정 오류:', error);
-        res.status(500).json({ error: error.message || '댓글 수정 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '댓글 수정 중 오류가 발생했습니다.' });
     }
 });
 
@@ -555,7 +572,7 @@ router.delete('/subforum/:subforumId/comment/:commentId', async (req, res) => {
         res.json({ success: true, message: '댓글이 삭제되었습니다.' });
     } catch (error) {
         console.error('댓글 삭제 오류:', error);
-        res.status(500).json({ error: error.message || '댓글 삭제 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '댓글 삭제 중 오류가 발생했습니다.' });
     }
 });
 
