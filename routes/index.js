@@ -1,10 +1,12 @@
 const express = require('express');
 const ForumService = require('../services/ForumService');
+const SEOService = require('../services/SEOService');
 const DatabaseManager = require('../services/DatabaseManager');
 const router = express.Router();
 
 // ForumService 인스턴스 생성
 const forumService = new ForumService();
+const seoService = new SEOService();
 const dbManager = DatabaseManager.getInstance();
 
 // 메인 페이지 - 포럼 카테고리 목록
@@ -82,6 +84,7 @@ router.get('/', async (req, res) => {
 
         res.render('pages/index', {
             title: '포럼 메인',
+            seo: seoService.home(),
             categories: categoriesWithPosts,
             popularPosts: popularPosts,
             recentActivityPosts: recentActivityPosts,

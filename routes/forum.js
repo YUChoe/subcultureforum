@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const ForumService = require('../services/ForumService');
 const { uploadFormFiles, handleUploadError } = require('../middleware/upload');
 const { createLimiter } = require('../middleware/rateLimit');
+const SEOService = require('../services/SEOService');
 const router = express.Router();
 
 // 게시글 작성: 사용자 당 10분에 10개. 제한에 걸려도 입력한 내용이 사라지지 않도록 작성 폼을 다시 보여준다.
@@ -38,6 +39,7 @@ const commentCreateLimiter = createLimiter({
 
 // ForumService 인스턴스 생성
 const forumService = new ForumService();
+const seoService = new SEOService();
 
 // 기존 category 라우트를 subforum으로 리다이렉트 (하위 호환성)
 router.get('/category/:id', (req, res) => {
@@ -73,6 +75,10 @@ router.get('/subforum/:id', async (req, res) => {
 
         res.render('pages/forum/subforum', {
             title: `${subforum.name} - 포럼`,
+            seo: seoService.category(subforum, {
+                page: page,
+                totalPages: postsData.pagination.total_pages
+            }),
             subforum: subforum,
             posts: postsData.posts,
             pagination: postsData.pagination,
@@ -258,6 +264,7 @@ router.get('/subforum/:subforumId/post/:postId', async (req, res) => {
 
         res.render('pages/forum/post', {
             title: post.title,
+            seo: seoService.post({ post, subforum }),
             subforum: subforum,
             post: post,
             comments: comments,
@@ -676,6 +683,7 @@ router.get('/search', async (req, res) => {
 
         res.render('pages/forum/search', {
             title: query ? `"${query}" 검색 결과` : '포럼 검색',
+            seo: seoService.search(query),
             query: query,
             subforums: subforums,
             selectedSubforum: selectedSubforum,

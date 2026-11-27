@@ -1,0 +1,28 @@
+<%#
+    SEO <head> 태그. 입력: 페이지 locals 의 seo (route 가 SEOService 로 설정, 없으면 noindex 페이지로 처리), title.
+    사용자 값은 속성/텍스트 위치에서 escapeHtml, JSON-LD 는 jsString (JSON.stringify + < > & 이스케이프) 으로 출력한다.
+%>
+<%
+    const head = seoHead(typeof seo !== 'undefined' ? seo : null, typeof title !== 'undefined' ? title : '');
+%>
+    <title><%= head.title %></title>
+    <meta name="description" content="<%= head.description %>">
+    <meta name="robots" content="<%= head.robots %>">
+<% if (head.canonical) { %>
+    <link rel="canonical" href="<%= head.canonical %>">
+<% } %>
+<% if (head.prev) { %>
+    <link rel="prev" href="<%= head.prev %>">
+<% } %>
+<% if (head.next) { %>
+    <link rel="next" href="<%= head.next %>">
+<% } %>
+<% head.og.forEach(function (tag) { %>
+    <meta property="<%= tag[0] %>" content="<%= tag[1] %>">
+<% }); %>
+<% head.twitter.forEach(function (tag) { %>
+    <meta name="<%= tag[0] %>" content="<%= tag[1] %>">
+<% }); %>
+<% head.jsonLd.forEach(function (data) { %>
+    <script type="application/ld+json"><%- jsString(data) %></script>
+<% }); %>

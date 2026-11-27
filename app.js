@@ -66,6 +66,9 @@ async function initializeApp() {
             const v = process.env.TRUST_PROXY;
             app.set('trust proxy', v === 'true' ? true : v === 'false' ? false : /^\d+$/.test(v) ? parseInt(v, 10) : v);
         }
+        // SEO head 생성 헬퍼 (views/partials/seo-meta.ejs 에서 사용). route 가 seo 를 지정하지 않은 페이지는 noindex
+        const seoService = new (require('./services/SEOService'))();
+        app.locals.seoHead = (seo, title) => seoService.head(seo, title);
 
         // 미들웨어 설정
         app.use(express.json());

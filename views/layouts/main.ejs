@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - NOIZZE</title>
-    <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'NOIZZE 커뮤니티 포럼' %>">
+    <%- include('../partials/seo-meta') %>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -55,7 +54,6 @@
     <link rel="apple-touch-icon" href="/images/icon-192x192.png">
 
     <!-- 추가 메타 태그 -->
-    <meta name="robots" content="index, follow">
     <meta name="author" content="NOIZZE">
 </head>
 <body x-data="{
