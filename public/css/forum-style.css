@@ -528,6 +528,18 @@ footer small {
         padding: 10px !important;
     }
 
+    /* 상단 네비게이션이 두 줄로 깨지지 않도록 간격을 줄이고 줄바꿈을 막는다 */
+    nav ul {
+        padding: 8px 10px !important;
+        gap: 4px !important;
+    }
+
+    nav a,
+    nav button {
+        padding: 5px 6px !important;
+        white-space: nowrap !important;
+    }
+
     .posts-header {
         display: none !important;
     }
