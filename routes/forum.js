@@ -142,8 +142,8 @@ router.post('/subforum/:subforumId/post/new',
             .withMessage('제목은 1-200자 사이여야 합니다'),
         body('content')
             .trim()
-            .isLength({ min: 1 })
-            .withMessage('내용을 입력해주세요')
+            .isLength({ min: 1, max: 50000 })
+            .withMessage('내용은 1-50000자 사이여야 합니다')
     ],
     async (req, res) => {
     if (!req.user) {
@@ -348,8 +348,8 @@ router.post('/subforum/:subforumId/post/:postId/edit',
             .withMessage('제목은 1-200자 사이여야 합니다'),
         body('content')
             .trim()
-            .isLength({ min: 1 })
-            .withMessage('내용을 입력해주세요')
+            .isLength({ min: 1, max: 50000 })
+            .withMessage('내용은 1-50000자 사이여야 합니다')
     ],
     async (req, res) => {
     if (!req.user) {
@@ -491,8 +491,8 @@ router.post('/subforum/:subforumId/post/:postId/delete', async (req, res) => {
 router.post('/subforum/:subforumId/post/:postId/comment', commentCreateLimiter, [
     body('content')
         .trim()
-        .isLength({ min: 1 })
-        .withMessage('댓글 내용을 입력해주세요')
+        .isLength({ min: 1, max: 5000 })
+        .withMessage('댓글은 1-5000자 사이여야 합니다')
 ], async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ error: '로그인이 필요합니다.' });
@@ -524,8 +524,8 @@ router.post('/subforum/:subforumId/post/:postId/comment', commentCreateLimiter, 
 router.put('/subforum/:subforumId/comment/:commentId', [
     body('content')
         .trim()
-        .isLength({ min: 1 })
-        .withMessage('댓글 내용을 입력해주세요')
+        .isLength({ min: 1, max: 5000 })
+        .withMessage('댓글은 1-5000자 사이여야 합니다')
 ], async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ error: '로그인이 필요합니다.' });
