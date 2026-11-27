@@ -1,7 +1,25 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { authService } = require('../middleware/auth');
+const { createLimiter } = require('../middleware/rateLimit');
 const router = express.Router();
+
+// 로그인: 실패한 시도만 15분에 10회까지 허용 (성공한 로그인은 횟수에서 제외)
+const loginLimiter = createLimiter({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    successStatus: 302,
+    message: '로그인 시도가 너무 많습니다.',
+    onLimit: (req, res, message) => res.status(429).render('pages/auth/login', { title: '로그인', error: message })
+});
+
+// 회원가입: IP 당 1시간에 5회
+const registerLimiter = createLimiter({
+    windowMs: 60 * 60 * 1000,
+    limit: 5,
+    message: '회원가입 시도가 너무 많습니다.',
+    onLimit: (req, res, message) => res.status(429).render('pages/auth/register', { title: '회원가입', error: message })
+});
 
 // 로그인 페이지
 router.get('/login', (req, res) => {
@@ -16,7 +34,7 @@ router.get('/login', (req, res) => {
 });
 
 // 로그인 처리
-router.post('/login', [
+router.post('/login', loginLimiter, [
     body('username').notEmpty().withMessage('사용자명을 입력해주세요'),
     body('password').notEmpty().withMessage('비밀번호를 입력해주세요')
 ], async (req, res) => {
@@ -66,7 +84,7 @@ router.get('/register', (req, res) => {
 });
 
 // 회원가입 처리
-router.post('/register', [
+router.post('/register', registerLimiter, [
     body('username')
         .isLength({ min: 3, max: 20 })
         .withMessage('사용자명은 3-20자 사이여야 합니다')

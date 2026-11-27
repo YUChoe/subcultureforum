@@ -2,7 +2,39 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const ForumService = require('../services/ForumService');
 const { uploadMultiple, handleUploadError } = require('../middleware/upload');
+const { createLimiter } = require('../middleware/rateLimit');
 const router = express.Router();
+
+// 게시글 작성: 사용자 당 10분에 10개. 제한에 걸려도 입력한 내용이 사라지지 않도록 작성 폼을 다시 보여준다.
+const postCreateLimiter = createLimiter({
+    windowMs: 10 * 60 * 1000,
+    limit: 10,
+    message: '게시글을 너무 자주 작성하고 있습니다.',
+    onLimit: async (req, res, message) => {
+        try {
+            const subforum = await forumService.getSubforumById(parseInt(req.params.subforumId));
+            if (subforum) {
+                const { title, content } = req.body || {};
+                return res.status(429).render('pages/forum/new-post', {
+                    title: `새 게시글 작성 - ${subforum.name}`,
+                    subforum: subforum,
+                    error: message,
+                    formData: { title, content }
+                });
+            }
+        } catch (error) {
+            console.error('요청 제한 응답 오류:', error);
+        }
+        return res.status(429).render('pages/error', { title: '요청이 너무 많습니다', error: { status: 429, message } });
+    }
+});
+
+// 댓글 작성: 사용자 당 5분에 20개
+const commentCreateLimiter = createLimiter({
+    windowMs: 5 * 60 * 1000,
+    limit: 20,
+    message: '댓글을 너무 자주 작성하고 있습니다.'
+});
 
 // ForumService 인스턴스 생성
 const forumService = new ForumService();
@@ -102,6 +134,7 @@ router.get('/subforum/:subforumId/post/new', async (req, res) => {
 // 게시글 작성 처리
 router.post('/subforum/:subforumId/post/new',
     uploadMultiple,
+    postCreateLimiter,
     [
         body('title')
             .trim()
@@ -438,7 +471,7 @@ router.post('/subforum/:subforumId/post/:postId/delete', async (req, res) => {
 });
 
 // 댓글 작성 처리
-router.post('/subforum/:subforumId/post/:postId/comment', [
+router.post('/subforum/:subforumId/post/:postId/comment', commentCreateLimiter, [
     body('content')
         .trim()
         .isLength({ min: 1 })
