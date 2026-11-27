@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const ForumService = require('../services/ForumService');
-const { uploadMultiple, handleUploadError } = require('../middleware/upload');
+const { uploadFormFiles, handleUploadError } = require('../middleware/upload');
 const { createLimiter } = require('../middleware/rateLimit');
 const router = express.Router();
 
@@ -133,7 +133,7 @@ router.get('/subforum/:subforumId/post/new', async (req, res) => {
 
 // 게시글 작성 처리
 router.post('/subforum/:subforumId/post/new',
-    uploadMultiple,
+    uploadFormFiles,
     postCreateLimiter,
     [
         body('title')
@@ -167,11 +167,11 @@ router.post('/subforum/:subforumId/post/new',
             });
         }
 
-        if (!errors.isEmpty()) {
+        if (!errors.isEmpty() || req.uploadError) {
             return res.render('pages/forum/new-post', {
                 title: `새 게시글 작성 - ${subforum.name}`,
                 subforum: subforum,
-                error: errors.array()[0].msg,
+                error: req.uploadError || errors.array()[0].msg,
                 formData: { title, content }
             });
         }
@@ -340,7 +340,7 @@ router.get('/subforum/:subforumId/post/:postId/edit', async (req, res) => {
 
 // 게시글 수정 처리
 router.post('/subforum/:subforumId/post/:postId/edit',
-    uploadMultiple,
+    uploadFormFiles,
     [
         body('title')
             .trim()
@@ -386,12 +386,12 @@ router.post('/subforum/:subforumId/post/:postId/edit',
             });
         }
 
-        if (!errors.isEmpty()) {
+        if (!errors.isEmpty() || req.uploadError) {
             return res.render('pages/forum/edit-post', {
                 title: `게시글 수정 - ${post.title}`,
                 subforum: subforum,
                 post: { ...post, title, content },
-                error: errors.array()[0].msg
+                error: req.uploadError || errors.array()[0].msg
             });
         }
 
