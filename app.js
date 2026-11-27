@@ -1,6 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
+const crypto = require('crypto');
 
 // 라우터 임포트
 const indexRouter = require('./routes/index');
@@ -16,6 +17,27 @@ const PORT = process.env.PORT || 8888;
 
 // 데이터베이스 매니저 인스턴스 가져오기
 const dbManager = DatabaseManager.getInstance();
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+// 세션 시크릿: 하드코딩된 기본값을 쓰지 않는다.
+// 프로덕션에서는 SESSION_SECRET 이 없으면 시작하지 않고, 개발 환경에서는 실행할 때마다 임의 값을 생성한다.
+function resolveSessionSecret() {
+    const secret = process.env.SESSION_SECRET;
+    const isPlaceholder = !secret || secret === 'your-secret-key-here';
+
+    if (!isPlaceholder) {
+        return secret;
+    }
+
+    if (isProduction) {
+        console.error('❌ 프로덕션에서는 SESSION_SECRET 환경 변수가 필요합니다. (.env.example 참고)');
+        process.exit(1);
+    }
+
+    console.warn('⚠️  SESSION_SECRET 이 설정되지 않아 임시 랜덤 값을 사용합니다. 서버를 재시작하면 모든 세션이 로그아웃됩니다.');
+    return crypto.randomBytes(32).toString('hex');
+}
 
 async function initializeApp() {
     try {
@@ -44,7 +66,7 @@ async function initializeApp() {
 
         // 세션 설정
         app.use(session({
-            secret: process.env.SESSION_SECRET || 'forum-secret-key-change-in-production',
+            secret: resolveSessionSecret(),
             resave: false,
             saveUninitialized: false,
             cookie: {
