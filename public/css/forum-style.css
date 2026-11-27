@@ -164,12 +164,14 @@ nav[aria-label="breadcrumb"] a:hover {
 
 .subforum-stats {
     display: flex !important;
-    gap: 15px !important;
+    flex-wrap: wrap !important;
+    gap: 4px 15px !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
 .subforum-stats span {
+    white-space: nowrap !important;
     font-size: 13px !important;
     color: #686868 !important;
     background: transparent !important;
@@ -196,10 +198,13 @@ section.forum-search {
     padding: 0 !important;
     margin: 0 !important;
     display: flex !important;
+    max-width: 100% !important;
 }
 
 .search-form input[type="text"] {
     flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
     border: none !important;
     background: transparent !important;
     padding: 10px 15px !important;
@@ -209,6 +214,9 @@ section.forum-search {
 }
 
 .search-form button {
+    flex-shrink: 0 !important;
+    width: auto !important;
+    white-space: nowrap !important;
     background: #4a90e2 !important;
     color: #fff !important;
     border: none !important;
@@ -229,6 +237,8 @@ section.forum-search {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
     background: #fff !important;
     border: 1px solid #e0e0e0 !important;
     border-radius: 0 !important;
@@ -274,6 +284,8 @@ section.forum-controls {
 }
 
 .controls-right select {
+    min-width: 0 !important;
+    max-width: 100% !important;
     border: 1px solid #e0e0e0 !important;
     background: #fff !important;
     padding: 6px 10px !important;
@@ -549,7 +561,17 @@ footer small {
     }
 
     .controls-right select {
+        flex: 1 !important;
+        width: auto !important;
+    }
+
+    .controls-left {
         width: 100% !important;
+    }
+
+    .controls-left a {
+        display: block !important;
+        text-align: center !important;
     }
 }
 
