@@ -2,7 +2,23 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { authService } = require('../middleware/auth');
 const { createLimiter } = require('../middleware/rateLimit');
+const { getToken } = require('../middleware/csrf');
 const router = express.Router();
+
+// 로그인/회원가입 직후 세션 ID 를 새로 발급한다 (session fixation 방지).
+// 새 세션에 사용자 정보와 새 CSRF 토큰을 넣고 저장한 뒤에 resolve 한다.
+function startSession(req, user) {
+    return new Promise((resolve, reject) => {
+        req.session.regenerate((regenerateError) => {
+            if (regenerateError) {
+                return reject(regenerateError);
+            }
+            authService.createSession(req.session, user);
+            getToken(req);
+            req.session.save((saveError) => (saveError ? reject(saveError) : resolve()));
+        });
+    });
+}
 
 // 로그인: 실패한 시도만 15분에 10회까지 허용 (성공한 로그인은 횟수에서 제외)
 const loginLimiter = createLimiter({
@@ -53,8 +69,8 @@ router.post('/login', loginLimiter, [
         const user = await authService.login(username, password);
 
         if (user) {
-            // 세션 생성
-            authService.createSession(req.session, user);
+            // 세션 생성 (세션 ID 재발급)
+            await startSession(req, user);
             res.redirect('/');
         } else {
             res.render('pages/auth/login', {
@@ -118,8 +134,8 @@ router.post('/register', registerLimiter, [
         // AuthService에서 회원가입 처리
         const user = await authService.register({ username, email, password });
 
-        // 회원가입 성공 후 자동 로그인
-        authService.createSession(req.session, user);
+        // 회원가입 성공 후 자동 로그인 (세션 ID 재발급)
+        await startSession(req, user);
 
         res.redirect('/');
     } catch (error) {
@@ -138,6 +154,8 @@ router.post('/logout', (req, res) => {
             if (err) {
                 console.error('로그아웃 오류:', err);
             }
+            // 세션 쿠키도 함께 지운다
+            res.clearCookie('connect.sid');
             res.redirect('/');
         });
     } else {
