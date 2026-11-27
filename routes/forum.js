@@ -1,8 +1,40 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const ForumService = require('../services/ForumService');
-const { uploadMultiple, handleUploadError } = require('../middleware/upload');
+const { uploadFormFiles, handleUploadError } = require('../middleware/upload');
+const { createLimiter } = require('../middleware/rateLimit');
 const router = express.Router();
+
+// 게시글 작성: 사용자 당 10분에 10개. 제한에 걸려도 입력한 내용이 사라지지 않도록 작성 폼을 다시 보여준다.
+const postCreateLimiter = createLimiter({
+    windowMs: 10 * 60 * 1000,
+    limit: 10,
+    message: '게시글을 너무 자주 작성하고 있습니다.',
+    onLimit: async (req, res, message) => {
+        try {
+            const subforum = await forumService.getSubforumById(parseInt(req.params.subforumId));
+            if (subforum) {
+                const { title, content } = req.body || {};
+                return res.status(429).render('pages/forum/new-post', {
+                    title: `새 게시글 작성 - ${subforum.name}`,
+                    subforum: subforum,
+                    error: message,
+                    formData: { title, content }
+                });
+            }
+        } catch (error) {
+            console.error('요청 제한 응답 오류:', error);
+        }
+        return res.status(429).render('pages/error', { title: '요청이 너무 많습니다', error: { status: 429, message } });
+    }
+});
+
+// 댓글 작성: 사용자 당 5분에 20개
+const commentCreateLimiter = createLimiter({
+    windowMs: 5 * 60 * 1000,
+    limit: 20,
+    message: '댓글을 너무 자주 작성하고 있습니다.'
+});
 
 // ForumService 인스턴스 생성
 const forumService = new ForumService();
@@ -101,7 +133,8 @@ router.get('/subforum/:subforumId/post/new', async (req, res) => {
 
 // 게시글 작성 처리
 router.post('/subforum/:subforumId/post/new',
-    uploadMultiple,
+    uploadFormFiles,
+    postCreateLimiter,
     [
         body('title')
             .trim()
@@ -109,8 +142,8 @@ router.post('/subforum/:subforumId/post/new',
             .withMessage('제목은 1-200자 사이여야 합니다'),
         body('content')
             .trim()
-            .isLength({ min: 1 })
-            .withMessage('내용을 입력해주세요')
+            .isLength({ min: 1, max: 50000 })
+            .withMessage('내용은 1-50000자 사이여야 합니다')
     ],
     async (req, res) => {
     if (!req.user) {
@@ -134,11 +167,11 @@ router.post('/subforum/:subforumId/post/new',
             });
         }
 
-        if (!errors.isEmpty()) {
+        if (!errors.isEmpty() || req.uploadError) {
             return res.render('pages/forum/new-post', {
                 title: `새 게시글 작성 - ${subforum.name}`,
                 subforum: subforum,
-                error: errors.array()[0].msg,
+                error: req.uploadError || errors.array()[0].msg,
                 formData: { title, content }
             });
         }
@@ -307,7 +340,7 @@ router.get('/subforum/:subforumId/post/:postId/edit', async (req, res) => {
 
 // 게시글 수정 처리
 router.post('/subforum/:subforumId/post/:postId/edit',
-    uploadMultiple,
+    uploadFormFiles,
     [
         body('title')
             .trim()
@@ -315,8 +348,8 @@ router.post('/subforum/:subforumId/post/:postId/edit',
             .withMessage('제목은 1-200자 사이여야 합니다'),
         body('content')
             .trim()
-            .isLength({ min: 1 })
-            .withMessage('내용을 입력해주세요')
+            .isLength({ min: 1, max: 50000 })
+            .withMessage('내용은 1-50000자 사이여야 합니다')
     ],
     async (req, res) => {
     if (!req.user) {
@@ -353,12 +386,22 @@ router.post('/subforum/:subforumId/post/:postId/edit',
             });
         }
 
-        if (!errors.isEmpty()) {
+        if (post.user_id !== req.user.id) {
+            return res.status(403).render('pages/error', {
+                title: '권한이 없습니다',
+                error: {
+                    status: 403,
+                    message: '게시글 수정 권한이 없습니다.'
+                }
+            });
+        }
+
+        if (!errors.isEmpty() || req.uploadError) {
             return res.render('pages/forum/edit-post', {
                 title: `게시글 수정 - ${post.title}`,
                 subforum: subforum,
                 post: { ...post, title, content },
-                error: errors.array()[0].msg
+                error: req.uploadError || errors.array()[0].msg
             });
         }
 
@@ -386,6 +429,13 @@ router.post('/subforum/:subforumId/post/:postId/edit',
         res.redirect(`/forum/subforum/${subforumId}/post/${postId}`);
     } catch (error) {
         console.error('게시글 수정 오류:', error);
+
+        if (error.status === 403 || error.status === 404) {
+            return res.status(error.status).render('pages/error', {
+                title: error.status === 403 ? '권한이 없습니다' : '게시글을 찾을 수 없습니다',
+                error: { status: error.status, message: error.message }
+            });
+        }
 
         try {
             const postId = parseInt(req.params.postId);
@@ -433,16 +483,16 @@ router.post('/subforum/:subforumId/post/:postId/delete', async (req, res) => {
         res.json({ success: true, message: '게시글이 삭제되었습니다.' });
     } catch (error) {
         console.error('게시글 삭제 오류:', error);
-        res.status(500).json({ error: error.message || '게시글 삭제 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '게시글 삭제 중 오류가 발생했습니다.' });
     }
 });
 
 // 댓글 작성 처리
-router.post('/subforum/:subforumId/post/:postId/comment', [
+router.post('/subforum/:subforumId/post/:postId/comment', commentCreateLimiter, [
     body('content')
         .trim()
-        .isLength({ min: 1 })
-        .withMessage('댓글 내용을 입력해주세요')
+        .isLength({ min: 1, max: 5000 })
+        .withMessage('댓글은 1-5000자 사이여야 합니다')
 ], async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ error: '로그인이 필요합니다.' });
@@ -466,7 +516,7 @@ router.post('/subforum/:subforumId/post/:postId/comment', [
         res.json({ success: true, message: '댓글이 작성되었습니다.', commentId: commentId });
     } catch (error) {
         console.error('댓글 작성 오류:', error);
-        res.status(500).json({ error: error.message || '댓글 작성 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '댓글 작성 중 오류가 발생했습니다.' });
     }
 });
 
@@ -474,8 +524,8 @@ router.post('/subforum/:subforumId/post/:postId/comment', [
 router.put('/subforum/:subforumId/comment/:commentId', [
     body('content')
         .trim()
-        .isLength({ min: 1 })
-        .withMessage('댓글 내용을 입력해주세요')
+        .isLength({ min: 1, max: 5000 })
+        .withMessage('댓글은 1-5000자 사이여야 합니다')
 ], async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ error: '로그인이 필요합니다.' });
@@ -498,7 +548,7 @@ router.put('/subforum/:subforumId/comment/:commentId', [
         res.json({ success: true, message: '댓글이 수정되었습니다.' });
     } catch (error) {
         console.error('댓글 수정 오류:', error);
-        res.status(500).json({ error: error.message || '댓글 수정 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '댓글 수정 중 오류가 발생했습니다.' });
     }
 });
 
@@ -522,7 +572,7 @@ router.delete('/subforum/:subforumId/comment/:commentId', async (req, res) => {
         res.json({ success: true, message: '댓글이 삭제되었습니다.' });
     } catch (error) {
         console.error('댓글 삭제 오류:', error);
-        res.status(500).json({ error: error.message || '댓글 삭제 중 오류가 발생했습니다.' });
+        res.status(error.status || 500).json({ error: error.message || '댓글 삭제 중 오류가 발생했습니다.' });
     }
 });
 

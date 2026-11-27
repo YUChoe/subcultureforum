@@ -17,6 +17,7 @@
                     ` : ''}
 
                     <form method="POST" action="/auth/register" class="auth-form">
+                <input type="hidden" name="_csrf" value="${csrfToken()}">
                         <div class="form-group">
                             <label for="username">
                                 <span class="label-icon">👤</span>
