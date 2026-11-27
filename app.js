@@ -50,6 +50,7 @@ async function initializeApp() {
             cookie: {
                 secure: false, // HTTPS에서는 true로 설정
                 httpOnly: true,
+                sameSite: 'lax', // 다른 사이트에서의 POST 요청에 쿠키가 전송되지 않도록 (CSRF 완화)
                 maxAge: 24 * 60 * 60 * 1000 // 24시간
             }
         }));
