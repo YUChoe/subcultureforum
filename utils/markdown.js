@@ -6,6 +6,23 @@ const { JSDOM } = require('jsdom');
 const window = new JSDOM('').window;
 const purify = DOMPurify(window);
 
+// 사용자 마크다운에서 허용하는 코드 블록 언어 클래스 (marked 가 ```js 에 붙이는 language-js 등)
+const SAFE_CODE_CLASS = /^language-[a-z0-9_+#-]+$/i;
+const DATA_URL = /^[\s\u0000-\u001f]*data:/i;
+
+purify.addHook('uponSanitizeAttribute', (node, data) => {
+    // data: URL 은 링크/이미지 등 모든 URL 속성에서 차단
+    if (['href', 'src', 'xlink:href', 'action', 'formaction'].includes(data.attrName) && DATA_URL.test(data.attrValue)) {
+        data.keepAttr = false;
+        return;
+    }
+    // class 는 <code class="language-xxx"> 만 허용 (사이트 CSS 클래스 재사용으로 UI 를 위장하는 것 방지)
+    if (data.attrName === 'class') {
+        const ok = node.nodeName === 'CODE' && SAFE_CODE_CLASS.test(data.attrValue);
+        data.keepAttr = ok;
+    }
+});
+
 // marked 옵션 설정
 marked.setOptions({
     breaks: true, // 줄바꿈을 <br>로 변환
@@ -42,9 +59,9 @@ function renderMarkdown(markdown) {
             ],
             ALLOWED_ATTR: [
                 'href', 'title', 'alt', 'src',
-                'class', 'id'
+                'class' // uponSanitizeAttribute 훅에서 code 의 language-* 만 남긴다 (id 는 DOM clobbering 방지를 위해 불허)
             ],
-            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+            ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
         });
 
         return cleanHtml;
