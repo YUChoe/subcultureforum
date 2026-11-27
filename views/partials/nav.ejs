@@ -18,6 +18,7 @@
                         <li><a href="/profile">👤 프로필</a></li>
                         <li>
                             <form method="POST" action="/auth/logout" style="margin: 0;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                                 <button type="submit" class="outline" style="width: 100%; margin: 0;">🚪 로그아웃</button>
                             </form>
                         </li>

@@ -1,6 +1,13 @@
 const DatabaseManagerSingleton = require('./DatabaseManager');
 const { renderMarkdown, extractPlainText, escapeHtml } = require('../utils/markdown');
 
+// HTTP 상태 코드를 가진 오류 (라우트에서 403/404 등으로 응답하기 위해 사용)
+function httpError(status, message) {
+    const error = new Error(message);
+    error.status = status;
+    return error;
+}
+
 class ForumService {
     constructor() {
         this.dbManager = DatabaseManagerSingleton.getInstance();
@@ -790,11 +797,11 @@ class ForumService {
             );
 
             if (!existingPost) {
-                throw new Error('게시글을 찾을 수 없습니다.');
+                throw httpError(404, '게시글을 찾을 수 없습니다.');
             }
 
             if (existingPost.user_id !== userId) {
-                throw new Error('게시글 수정 권한이 없습니다.');
+                throw httpError(403, '게시글 수정 권한이 없습니다.');
             }
 
             // 게시글 수정
@@ -842,12 +849,12 @@ class ForumService {
             );
 
             if (!existingPost) {
-                throw new Error('게시글을 찾을 수 없습니다.');
+                throw httpError(404, '게시글을 찾을 수 없습니다.');
             }
 
             // 작성자이거나 모더레이터인 경우에만 삭제 가능
             if (existingPost.user_id !== userId && !isModerator) {
-                throw new Error('게시글 삭제 권한이 없습니다.');
+                throw httpError(403, '게시글 삭제 권한이 없습니다.');
             }
 
             // 게시글 삭제 (댓글은 CASCADE로 자동 삭제됨)
@@ -996,7 +1003,7 @@ class ForumService {
             );
 
             if (!post) {
-                throw new Error('게시글을 찾을 수 없습니다.');
+                throw httpError(404, '게시글을 찾을 수 없습니다.');
             }
 
             // 댓글 생성
@@ -1111,11 +1118,11 @@ class ForumService {
             );
 
             if (!existingComment) {
-                throw new Error('댓글을 찾을 수 없습니다.');
+                throw httpError(404, '댓글을 찾을 수 없습니다.');
             }
 
             if (existingComment.user_id !== userId) {
-                throw new Error('댓글 수정 권한이 없습니다.');
+                throw httpError(403, '댓글 수정 권한이 없습니다.');
             }
 
             // 댓글 수정
@@ -1163,12 +1170,12 @@ class ForumService {
             );
 
             if (!existingComment) {
-                throw new Error('댓글을 찾을 수 없습니다.');
+                throw httpError(404, '댓글을 찾을 수 없습니다.');
             }
 
             // 작성자이거나 모더레이터인 경우에만 삭제 가능
             if (existingComment.user_id !== userId && !isModerator) {
-                throw new Error('댓글 삭제 권한이 없습니다.');
+                throw httpError(403, '댓글 삭제 권한이 없습니다.');
             }
 
             // 댓글 삭제

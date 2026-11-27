@@ -21,6 +21,7 @@
 
             <section class="forum-form">
                 <form method="POST" action="/admin/forums/new">
+                <input type="hidden" name="_csrf" value="${csrfToken()}">
                     <div class="form-group">
                         <label for="name">
                             서브포럼 이름 <span class="required">*</span>

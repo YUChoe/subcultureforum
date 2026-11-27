@@ -1,7 +1,7 @@
 module.exports = {
     // 서버 설정
     server: {
-        port: process.env.PORT || 8888,
+        port: process.env.PORT || 8000,
         host: process.env.HOST || 'localhost'
     },
 
@@ -48,7 +48,11 @@ module.exports = {
     // 사이트 설정
     site: {
         name: 'NOIZZE',
-        description: 'forum.noizze.net - 커뮤니티 포럼',
+        // 절대 URL 생성 기준 (canonical, sitemap, og:url). 예: https://noizze.net (끝의 / 는 제거됨)
+        url: (process.env.SITE_URL || ('http://localhost:' + (process.env.PORT || 8000))).replace(/\/+$/, ''),
+        // sitemap 메모리 캐시 TTL (초)
+        seoCacheTtlSeconds: parseInt(process.env.SEO_CACHE_TTL_SECONDS, 10) || 3600,
+        description: 'NOIZZE 커뮤니티 포럼',
         defaultLanguage: 'ko',
         timezone: 'Asia/Seoul'
     }

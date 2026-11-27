@@ -1,6 +1,8 @@
 const express = require('express');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const path = require('path');
+const crypto = require('crypto');
 
 // 라우터 임포트
 const indexRouter = require('./routes/index');
@@ -12,10 +14,31 @@ const adminRouter = require('./routes/admin');
 const DatabaseManager = require('./services/DatabaseManager');
 
 const app = express();
-const PORT = process.env.PORT || 8888;
+const PORT = process.env.PORT || 8000;
 
 // 데이터베이스 매니저 인스턴스 가져오기
 const dbManager = DatabaseManager.getInstance();
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+// 세션 시크릿: 하드코딩된 기본값을 쓰지 않는다.
+// 프로덕션에서는 SESSION_SECRET 이 없으면 시작하지 않고, 개발 환경에서는 실행할 때마다 임의 값을 생성한다.
+function resolveSessionSecret() {
+    const secret = process.env.SESSION_SECRET;
+    const isPlaceholder = !secret || secret === 'your-secret-key-here';
+
+    if (!isPlaceholder) {
+        return secret;
+    }
+
+    if (isProduction) {
+        console.error('❌ 프로덕션에서는 SESSION_SECRET 환경 변수가 필요합니다. (.env.example 참고)');
+        process.exit(1);
+    }
+
+    console.warn('⚠️  SESSION_SECRET 이 설정되지 않아 임시 랜덤 값을 사용합니다. 서버를 재시작하면 모든 세션이 로그아웃됩니다.');
+    return crypto.randomBytes(32).toString('hex');
+}
 
 async function initializeApp() {
     try {
@@ -37,21 +60,54 @@ async function initializeApp() {
         // 뷰에서 사용자 입력을 안전하게 출력하기 위한 헬퍼 (escapeHtml, jsAttr, jsString)
         Object.assign(app.locals, require('./utils/template-helpers'));
 
+        // 리버스 프록시(nginx 등) 뒤에서 HTTPS 를 종료하는 경우 TRUST_PROXY 를 설정한다.
+        // 숫자(프록시 홉 수) 또는 true/false/IP 목록 등 express 의 'trust proxy' 값을 그대로 사용한다.
+        if (process.env.TRUST_PROXY) {
+            const v = process.env.TRUST_PROXY;
+            app.set('trust proxy', v === 'true' ? true : v === 'false' ? false : /^\d+$/.test(v) ? parseInt(v, 10) : v);
+        }
+        // SEO head 생성 헬퍼 (views/partials/seo-meta.ejs 에서 사용). route 가 seo 를 지정하지 않은 페이지는 noindex
+        const seoService = new (require('./services/SEOService'))();
+        app.locals.seoHead = (seo, title) => seoService.head(seo, title);
+
         // 미들웨어 설정
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
         app.use(express.static(path.join(__dirname, 'public')));
 
+        // robots.txt, sitemap (세션/권한 검사 이전에 공개 제공)
+        app.use('/', require('./routes/seo'));
+
         // 세션 설정
+        // 파일 기반 세션 저장소: 서버를 재시작해도 로그인이 유지되고, 메모리에 세션이 계속 쌓이지 않는다.
+        // 저장 위치는 SESSION_DIR (기본값: 프로젝트의 ./sessions). 만료된 세션 파일은 reapInterval 마다 삭제한다.
+        const sessionTtlSeconds = 24 * 60 * 60; // 쿠키 maxAge(24시간)와 동일
+        const sessionStore = new FileStore({
+            path: process.env.SESSION_DIR || path.join(__dirname, 'sessions'),
+            ttl: sessionTtlSeconds,
+            reapInterval: 60 * 60, // 1시간마다 만료된 세션 파일 정리
+            retries: 5,
+            factor: 1,
+            minTimeout: 50,
+            maxTimeout: 200,
+            logFn: () => {}
+        });
+
+        // 요청마다 세션 파일을 다시 쓰지 않는다. 쿠키 만료 시각은 어차피 로그인/세션 변경 시점 기준(24시간)이고,
+        // 같은 세션으로 동시에 들어온 요청들이 파일을 동시에 덮어쓰다 실패(Windows 의 EPERM 등)하는 것을 막는다.
+        sessionStore.touch = (sessionId, session, callback) => callback && callback();
+
         app.use(session({
-            secret: process.env.SESSION_SECRET || 'forum-secret-key-change-in-production',
+            store: sessionStore,
+            secret: resolveSessionSecret(),
             resave: false,
             saveUninitialized: false,
             cookie: {
-                secure: false, // HTTPS에서는 true로 설정
+                // 프로덕션에서는 HTTPS 전용 쿠키. HTTP 로 운영해야 하면 COOKIE_SECURE=false 로 끌 수 있다.
+                secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProduction,
                 httpOnly: true,
                 sameSite: 'lax', // 다른 사이트에서의 POST 요청에 쿠키가 전송되지 않도록 (CSRF 완화)
-                maxAge: 24 * 60 * 60 * 1000 // 24시간
+                maxAge: sessionTtlSeconds * 1000 // 24시간
             }
         }));
 
@@ -68,6 +124,9 @@ async function initializeApp() {
             res.locals.user = req.user;
             next();
         });
+
+        // CSRF 토큰 검증 (POST/PUT/PATCH/DELETE)
+        app.use(require('./middleware/csrf').csrfProtection);
 
         // 라우트별 권한 검사 미들웨어 (라우터 설정 전에 적용)
         app.use(checkRoutePermission);
@@ -92,6 +151,10 @@ async function initializeApp() {
         // 에러 처리 미들웨어
         app.use((err, req, res, next) => {
             console.error('서버 오류:', err);
+            if (res.headersSent) {
+                // 이미 응답이 나간 뒤의 오류(예: 세션 저장 실패)는 Express 기본 처리기에 맡긴다
+                return next(err);
+            }
             res.status(err.status || 500).render('pages/error', {
                 title: '서버 오류',
                 error: {

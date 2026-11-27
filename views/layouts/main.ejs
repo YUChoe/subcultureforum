@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> - NOIZZE</title>
-    <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'NOIZZE 커뮤니티 포럼' %>">
+    <%- include('../partials/seo-meta') %>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -16,6 +15,32 @@
     <!-- 커스텀 CSS -->
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/forum-style.css">
+
+    <% if (typeof csrfToken === 'function' && isLoggedIn) { %>
+    <!-- CSRF: 같은 출처의 상태 변경 fetch 요청에 X-CSRF-Token 헤더를 자동으로 추가 -->
+    <meta name="csrf-token" content="<%= csrfToken() %>">
+    <script>
+    (function () {
+        var token = document.querySelector('meta[name="csrf-token"]').content;
+        var originalFetch = window.fetch;
+        window.fetch = function (input, init) {
+            init = init || {};
+            var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+            if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+                var url = new URL(typeof input === 'string' ? input : input.url, window.location.href);
+                if (url.origin === window.location.origin) {
+                    var headers = new Headers(init.headers || (input && input.headers) || {});
+                    if (!headers.has('X-CSRF-Token')) {
+                        headers.set('X-CSRF-Token', token);
+                    }
+                    init.headers = headers;
+                }
+            }
+            return originalFetch.call(this, input, init);
+        };
+    })();
+    </script>
+    <% } %>
 
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -29,7 +54,6 @@
     <link rel="apple-touch-icon" href="/images/icon-192x192.png">
 
     <!-- 추가 메타 태그 -->
-    <meta name="robots" content="index, follow">
     <meta name="author" content="NOIZZE">
 </head>
 <body x-data="{
@@ -67,6 +91,7 @@ x-init="document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 
                             <li><a href="/profile">👤 프로필</a></li>
                             <li>
                                 <form method="POST" action="/auth/logout" style="margin: 0;">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
                                     <button type="submit" class="outline" style="width: 100%; margin: 0;">🚪 로그아웃</button>
                                 </form>
                             </li>
