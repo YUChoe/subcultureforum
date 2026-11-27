@@ -368,6 +368,7 @@ section.forum-controls {
 
 .post-date {
     font-size: 12px !important;
+    text-align: left !important;
 }
 
 .post-row {
