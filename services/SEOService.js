@@ -105,7 +105,7 @@ class SEOService {
             canonical,
             // 마지막 페이지를 넘어선 요청은 색인하지 않는다
             robots: page > Math.max(totalPages, 1) ? 'noindex, follow' : 'index, follow',
-            prev: page > 1 ? this.url(this.categoryPath(subforum.id, page - 1)) : null,
+            prev: page > 1 ? this.url(this.categoryPath(subforum.id, Math.min(page - 1, Math.max(totalPages, 1)))) : null,
             next: page < totalPages ? this.url(this.categoryPath(subforum.id, page + 1)) : null,
             jsonLd: [
                 this.schema.generateCollectionPageSchema({
