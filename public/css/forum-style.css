@@ -268,6 +268,8 @@ section.forum-controls {
     font-size: 13px !important;
     color: #333 !important;
     margin: 0 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
 }
 
 .controls-right select {
