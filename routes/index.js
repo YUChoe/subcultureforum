@@ -106,31 +106,18 @@ router.get('/category/:id', (req, res) => {
     res.redirect(`/forum/subforum/${req.params.id}`);
 });
 
-// 검색 페이지
-router.get('/search', async (req, res) => {
-    try {
-        const query = req.query.q || '';
-        const subforumId = req.query.subforum || null;
-
-        // TODO: ForumService에서 검색 결과 가져오기
-        const searchResults = []; // 임시 빈 배열
-
-        res.render('pages/search', {
-            title: '검색 결과',
-            query: query,
-            subforumId: subforumId,
-            results: searchResults
-        });
-    } catch (error) {
-        console.error('검색 페이지 오류:', error);
-        res.status(500).render('pages/error', {
-            title: '검색 오류',
-            error: {
-                status: 500,
-                message: '검색 중 오류가 발생했습니다.'
-            }
-        });
+// 검색 페이지: 미완성 스텁(항상 빈 결과, 뷰에서 정의되지 않은 변수로 500 오류)이었으므로
+// 실제 검색이 구현된 /forum/search 로 이동시킨다
+router.get('/search', (req, res) => {
+    const params = new URLSearchParams();
+    if (typeof req.query.q === 'string' && req.query.q) {
+        params.set('q', req.query.q);
     }
+    if (typeof req.query.subforum === 'string' && req.query.subforum) {
+        params.set('subforum', req.query.subforum);
+    }
+    const qs = params.toString();
+    res.redirect('/forum/search' + (qs ? '?' + qs : ''));
 });
 
 module.exports = router;

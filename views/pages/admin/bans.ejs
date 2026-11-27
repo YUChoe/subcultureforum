@@ -55,9 +55,9 @@
                         <tbody>
                             ${bans.map(ban => `
                                 <tr>
-                                    <td>${ban.username}</td>
-                                    <td>${ban.email}</td>
-                                    <td><small>${ban.reason}</small></td>
+                                    <td>${escapeHtml(ban.username)}</td>
+                                    <td>${escapeHtml(ban.email)}</td>
+                                    <td><small>${escapeHtml(ban.reason)}</small></td>
                                     <td><small>${new Date(ban.banned_at).toLocaleDateString('ko-KR')}</small></td>
                                     <td>
                                         ${ban.expires_at ?
@@ -65,7 +65,7 @@
                                             '<small style="color: var(--pico-del-color);">영구</small>'
                                         }
                                     </td>
-                                    <td><small>${ban.banned_by_username}</small></td>
+                                    <td><small>${escapeHtml(ban.banned_by_username)}</small></td>
                                     <td>
                                         ${ban.is_active ?
                                             (ban.expires_at && new Date(ban.expires_at) < new Date() ?
@@ -76,7 +76,7 @@
                                     </td>
                                     <td>
                                         ${ban.is_active ?
-                                            '<button class="contrast outline" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="unbanUser(' + ban.user_id + ', \'' + ban.username + '\')">차단 해제</button>' :
+                                            '<button class="contrast outline" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="unbanUser(' + ban.user_id + ', ' + jsAttr(ban.username) + ')">차단 해제</button>' :
                                             '<small style="color: var(--pico-muted-color);">-</small>'
                                         }
                                     </td>

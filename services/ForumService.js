@@ -1,5 +1,5 @@
 const DatabaseManagerSingleton = require('./DatabaseManager');
-const { renderMarkdown, extractPlainText } = require('../utils/markdown');
+const { renderMarkdown, extractPlainText, escapeHtml } = require('../utils/markdown');
 
 class ForumService {
     constructor() {
@@ -1707,14 +1707,16 @@ class ForumService {
      */
     highlightSearchTerms(text, searchQuery) {
         if (!text || !searchQuery) {
-            return text;
+            return escapeHtml(text);
         }
 
         const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
-        let highlightedText = text;
+        // 결과는 HTML 로 출력되므로 원문을 먼저 이스케이프하고, 검색어는 정규식 특수문자를 이스케이프한다
+        let highlightedText = escapeHtml(text);
 
         for (const term of searchTerms) {
-            const regex = new RegExp(`(${term})`, 'gi');
+            const safeTerm = escapeHtml(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${safeTerm})`, 'gi');
             highlightedText = highlightedText.replace(regex, '<mark>$1</mark>');
         }
 

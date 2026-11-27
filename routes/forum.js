@@ -16,8 +16,9 @@ router.get('/category/:id', (req, res) => {
 router.get('/subforum/:id', async (req, res) => {
     try {
         const subforumId = parseInt(req.params.id);
-        const sortBy = req.query.sort || 'created_at'; // 기본값: 최신글 순
-        const page = parseInt(req.query.page) || 1;
+        // 잘못된 sort/page 값은 기본값으로 대체 (이전에는 sort 가 잘못되면 500 오류)
+        const sortBy = ['created_at', 'last_comment_at'].includes(req.query.sort) ? req.query.sort : 'created_at'; // 기본값: 최신글 순
+        const page = Math.max(1, parseInt(req.query.page) || 1);
 
         // 서브포럼 정보 조회
         const subforum = await forumService.getSubforumById(subforumId);
@@ -103,9 +104,11 @@ router.post('/subforum/:subforumId/post/new',
     uploadMultiple,
     [
         body('title')
+            .trim()
             .isLength({ min: 1, max: 200 })
             .withMessage('제목은 1-200자 사이여야 합니다'),
         body('content')
+            .trim()
             .isLength({ min: 1 })
             .withMessage('내용을 입력해주세요')
     ],
@@ -307,9 +310,11 @@ router.post('/subforum/:subforumId/post/:postId/edit',
     uploadMultiple,
     [
         body('title')
+            .trim()
             .isLength({ min: 1, max: 200 })
             .withMessage('제목은 1-200자 사이여야 합니다'),
         body('content')
+            .trim()
             .isLength({ min: 1 })
             .withMessage('내용을 입력해주세요')
     ],
@@ -435,6 +440,7 @@ router.post('/subforum/:subforumId/post/:postId/delete', async (req, res) => {
 // 댓글 작성 처리
 router.post('/subforum/:subforumId/post/:postId/comment', [
     body('content')
+        .trim()
         .isLength({ min: 1 })
         .withMessage('댓글 내용을 입력해주세요')
 ], async (req, res) => {
@@ -467,6 +473,7 @@ router.post('/subforum/:subforumId/post/:postId/comment', [
 // 댓글 수정 처리
 router.put('/subforum/:subforumId/comment/:commentId', [
     body('content')
+        .trim()
         .isLength({ min: 1 })
         .withMessage('댓글 내용을 입력해주세요')
 ], async (req, res) => {
@@ -594,7 +601,7 @@ router.get('/search', async (req, res) => {
         const query = req.query.q || '';
         const subforumId = req.query.subforum ? parseInt(req.query.subforum) : null;
         const sortBy = req.query.sort || 'relevance';
-        const page = parseInt(req.query.page) || 1;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
 
         // 서브포럼 목록 조회 (필터 옵션용)
         const subforums = await forumService.getSubforums();

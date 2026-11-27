@@ -3,22 +3,22 @@
     body: `
         <main class="container">
             <nav aria-label="breadcrumb">
-                <ul>
+                <ol>
                     <li><a href="/">홈</a></li>
-                    <li><a href="/forum/subforum/${subforum.id}">${subforum.name}</a></li>
+                    <li><a href="/forum/subforum/${subforum.id}">${escapeHtml(subforum.name)}</a></li>
                     <li>새 게시글 작성</li>
-                </ul>
+                </ol>
             </nav>
 
             <article>
                 <header>
                     <h1>새 게시글 작성</h1>
-                    <p>${subforum.name} 서브포럼에 새 게시글을 작성합니다.</p>
+                    <p>${escapeHtml(subforum.name)} 서브포럼에 새 게시글을 작성합니다.</p>
                 </header>
 
                 ${error ? `
                 <div class="alert alert-error" role="alert">
-                    ${error}
+                    ${escapeHtml(error)}
                 </div>
                 ` : ''}
 
@@ -31,7 +31,7 @@
                                 id="title"
                                 name="title"
                                 placeholder="게시글 제목을 입력하세요"
-                                value="${formData.title || ''}"
+                                value="${escapeHtml(formData.title)}"
                                 maxlength="200"
                                 required
                             >
@@ -48,7 +48,7 @@
                                 placeholder="게시글 내용을 입력하세요"
                                 rows="15"
                                 required
-                            >${formData.content || ''}</textarea>
+                            >${escapeHtml(formData.content)}</textarea>
                             <small>마크다운 문법을 사용할 수 있습니다. **굵게**, *기울임*, \`코드\`, [링크](URL) 등</small>
                         </label>
                     </div>

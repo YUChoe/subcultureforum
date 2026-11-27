@@ -27,6 +27,16 @@ async function initializeApp() {
         app.set('view engine', 'ejs');
         app.set('views', path.join(__dirname, 'views'));
 
+        // 기본 보안 헤더: 서버 정보 노출 제거, 업로드 파일 등의 MIME 스니핑 방지
+        app.disable('x-powered-by');
+        app.use((req, res, next) => {
+            res.set('X-Content-Type-Options', 'nosniff');
+            next();
+        });
+
+        // 뷰에서 사용자 입력을 안전하게 출력하기 위한 헬퍼 (escapeHtml, jsAttr, jsString)
+        Object.assign(app.locals, require('./utils/template-helpers'));
+
         // 미들웨어 설정
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
@@ -40,6 +50,7 @@ async function initializeApp() {
             cookie: {
                 secure: false, // HTTPS에서는 true로 설정
                 httpOnly: true,
+                sameSite: 'lax', // 다른 사이트에서의 POST 요청에 쿠키가 전송되지 않도록 (CSRF 완화)
                 maxAge: 24 * 60 * 60 * 1000 // 24시간
             }
         }));

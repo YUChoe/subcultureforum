@@ -16,7 +16,7 @@
                             type="text"
                             name="q"
                             placeholder="검색어를 입력하세요..."
-                            value="${query || ''}"
+                            value="${escapeHtml(query)}"
                             id="search-input"
                             autocomplete="off"
                         >
@@ -27,7 +27,7 @@
                             <option value="">전체 포럼</option>
                             ${subforums.map(subforum => `
                                 <option value="${subforum.id}" ${selectedSubforum && selectedSubforum.id === subforum.id ? 'selected' : ''}>
-                                    ${subforum.name}
+                                    ${escapeHtml(subforum.name)}
                                 </option>
                             `).join('')}
                         </select>
@@ -52,8 +52,8 @@
                 <div class="search-info">
                     <h2>검색 결과</h2>
                     <p class="search-meta">
-                        <strong>"${query}"</strong>에 대한 검색 결과
-                        ${searchResults.search_info.subforum_name ? `(${searchResults.search_info.subforum_name})` : ''}
+                        <strong>"${escapeHtml(query)}"</strong>에 대한 검색 결과
+                        ${searchResults.search_info.subforum_name ? `(${escapeHtml(searchResults.search_info.subforum_name)})` : ''}
                         - 총 <strong>${searchResults.pagination.total_count}</strong>개 발견
                     </p>
                 </div>
@@ -66,12 +66,12 @@
                                 <div class="result-header">
                                     <h3 class="result-title">
                                         <a href="/forum/subforum/${post.category_id}/post/${post.id}">
-                                            ${post.title_highlight || post.title}
+                                            ${post.title_highlight || escapeHtml(post.title)}
                                         </a>
                                     </h3>
                                     <div class="result-meta">
-                                        <span class="subforum-badge">${post.subforum_name}</span>
-                                        <span class="author">by ${post.username}</span>
+                                        <span class="subforum-badge">${escapeHtml(post.subforum_name)}</span>
+                                        <span class="author">by ${escapeHtml(post.username)}</span>
                                         <span class="date">${new Date(post.created_at).toLocaleDateString('ko-KR')}</span>
                                         <span class="stats">
                                             조회 ${post.view_count} · 댓글 ${post.comment_count}
@@ -79,7 +79,7 @@
                                     </div>
                                 </div>
                                 <div class="result-content">
-                                    <p>${post.content_preview}</p>
+                                    <p>${escapeHtml(post.content_preview)}</p>
                                 </div>
                             </article>
                         `).join('')}
@@ -90,7 +90,7 @@
                         <nav class="pagination-nav">
                             <div class="pagination">
                                 ${searchResults.pagination.has_prev ? `
-                                    <a href="?q=${encodeURIComponent(query)}&subforum=${selectedSubforum?.id || ''}&sort=${sortBy}&page=${searchResults.pagination.current_page - 1}"
+                                    <a href="?q=${encodeURIComponent(query)}&subforum=${selectedSubforum?.id || ''}&sort=${encodeURIComponent(sortBy)}&page=${searchResults.pagination.current_page - 1}"
                                        class="pagination-btn">이전</a>
                                 ` : ''}
 
@@ -99,7 +99,7 @@
                                 </span>
 
                                 ${searchResults.pagination.has_next ? `
-                                    <a href="?q=${encodeURIComponent(query)}&subforum=${selectedSubforum?.id || ''}&sort=${sortBy}&page=${searchResults.pagination.current_page + 1}"
+                                    <a href="?q=${encodeURIComponent(query)}&subforum=${selectedSubforum?.id || ''}&sort=${encodeURIComponent(sortBy)}&page=${searchResults.pagination.current_page + 1}"
                                        class="pagination-btn">다음</a>
                                 ` : ''}
                             </div>
@@ -109,7 +109,7 @@
                     <!-- 검색 결과 없음 -->
                     <div class="no-results">
                         <h3>검색 결과가 없습니다</h3>
-                        <p>"${query}"에 대한 검색 결과를 찾을 수 없습니다.</p>
+                        <p>"${escapeHtml(query)}"에 대한 검색 결과를 찾을 수 없습니다.</p>
                         <ul class="search-tips">
                             <li>다른 키워드로 검색해보세요</li>
                             <li>검색어의 철자를 확인해보세요</li>
@@ -371,12 +371,13 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.suggestions && data.suggestions.length > 0) {
-                                suggestionsContainer.innerHTML = data.suggestions
-                                    .map(suggestion =>
-                                        '<div class="suggestion-item" onclick="selectSuggestion(\'' +
-                                        suggestion.replace(/'/g, "\\'") + '\')">' +
-                                        suggestion + '</div>'
-                                    ).join('');
+                                suggestionsContainer.replaceChildren(...data.suggestions.map(suggestion => {
+                                    const item = document.createElement('div');
+                                    item.className = 'suggestion-item';
+                                    item.textContent = suggestion;
+                                    item.addEventListener('click', () => selectSuggestion(suggestion));
+                                    return item;
+                                }));
                                 suggestionsContainer.style.display = 'block';
                             } else {
                                 suggestionsContainer.style.display = 'none';

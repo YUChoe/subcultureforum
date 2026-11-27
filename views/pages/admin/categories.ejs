@@ -18,7 +18,7 @@
 
             <!-- 성공 메시지 -->
             ${typeof success !== 'undefined' && success ?
-                '<div class="alert success">' + success + '</div>' : ''
+                '<div class="alert success">' + escapeHtml(success) + '</div>' : ''
             }
 
             <!-- 카테고리 목록 -->
@@ -43,13 +43,13 @@
                                     </div>
 
                                     <div class="col-name">
-                                        <strong>${category.name}</strong>
+                                        <strong>${escapeHtml(category.name)}</strong>
                                         <br>
                                         <small>ID: ${category.id}</small>
                                     </div>
 
                                     <div class="col-description">
-                                        ${category.description || '<em>설명 없음</em>'}
+                                        ${category.description ? escapeHtml(category.description) : '<em>설명 없음</em>'}
                                     </div>
 
                                     <div class="col-stats">
@@ -75,7 +75,7 @@
                                            title="수정">
                                             ✏️
                                         </a>
-                                        <button onclick="deleteCategory(${category.id}, '${category.name}')"
+                                        <button onclick="deleteCategory(${category.id}, ${jsAttr(category.name)})"
                                                 class="btn-small danger"
                                                 title="삭제"
                                                 ${category.post_count > 0 ? 'disabled' : ''}>

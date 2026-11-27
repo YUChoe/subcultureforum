@@ -3,23 +3,23 @@
     body: `
         <main class="container">
             <nav aria-label="breadcrumb">
-                <ul>
+                <ol>
                     <li><a href="/">홈</a></li>
-                    <li><a href="/forum/subforum/${subforum.id}">${subforum.name}</a></li>
-                    <li><a href="/forum/subforum/${subforum.id}/post/${post.id}">${post.title}</a></li>
+                    <li><a href="/forum/subforum/${subforum.id}">${escapeHtml(subforum.name)}</a></li>
+                    <li><a href="/forum/subforum/${subforum.id}/post/${post.id}">${escapeHtml(post.title)}</a></li>
                     <li>수정</li>
-                </ul>
+                </ol>
             </nav>
 
             <article>
                 <header>
                     <h1>게시글 수정</h1>
-                    <p>${subforum.name} 서브포럼의 게시글을 수정합니다.</p>
+                    <p>${escapeHtml(subforum.name)} 서브포럼의 게시글을 수정합니다.</p>
                 </header>
 
                 ${error ? `
                 <div class="alert alert-error" role="alert">
-                    ${error}
+                    ${escapeHtml(error)}
                 </div>
                 ` : ''}
 
@@ -32,7 +32,7 @@
                                 id="title"
                                 name="title"
                                 placeholder="게시글 제목을 입력하세요"
-                                value="${post.title}"
+                                value="${escapeHtml(post.title)}"
                                 maxlength="200"
                                 required
                             >
@@ -49,7 +49,7 @@
                                 placeholder="게시글 내용을 입력하세요"
                                 rows="15"
                                 required
-                            >${post.content}</textarea>
+                            >${escapeHtml(post.content)}</textarea>
                             <small>마크다운 문법을 사용할 수 있습니다. **굵게**, *기울임*, \`코드\`, [링크](URL) 등</small>
                         </label>
                     </div>
@@ -62,11 +62,11 @@
                                 <div class="attachment-item" data-attachment-id="${attachment.id}">
                                     <img
                                         src="/forum/subforum/${subforum.id}/attachment/${attachment.id}"
-                                        alt="${attachment.original_filename}"
-                                        title="${attachment.original_filename}"
+                                        alt="${escapeHtml(attachment.original_filename)}"
+                                        title="${escapeHtml(attachment.original_filename)}"
                                     >
                                     <div class="attachment-info">
-                                        <small>${attachment.original_filename}</small>
+                                        <small>${escapeHtml(attachment.original_filename)}</small>
                                         <small>${Math.round(attachment.file_size / 1024)}KB</small>
                                         <button type="button" class="remove-existing-file" onclick="removeExistingFile(${attachment.id})">삭제</button>
                                     </div>

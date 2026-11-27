@@ -90,7 +90,7 @@ main > main {
 nav[aria-label="breadcrumb"] {
     background: transparent !important;
     border: none !important;
-    padding: 0 0 15px 0 !important;
+    padding: 8px 15px !important;
     margin: 0 !important;
 }
 
@@ -122,6 +122,7 @@ nav[aria-label="breadcrumb"] a {
     color: #4a90e2 !important;
     text-decoration: none !important;
     padding: 0 !important;
+    margin: 0 !important;
 }
 
 nav[aria-label="breadcrumb"] a:hover {
@@ -163,12 +164,14 @@ nav[aria-label="breadcrumb"] a:hover {
 
 .subforum-stats {
     display: flex !important;
-    gap: 15px !important;
+    flex-wrap: wrap !important;
+    gap: 4px 15px !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
 .subforum-stats span {
+    white-space: nowrap !important;
     font-size: 13px !important;
     color: #686868 !important;
     background: transparent !important;
@@ -195,10 +198,13 @@ section.forum-search {
     padding: 0 !important;
     margin: 0 !important;
     display: flex !important;
+    max-width: 100% !important;
 }
 
 .search-form input[type="text"] {
     flex: 1 !important;
+    min-width: 0 !important;
+    width: auto !important;
     border: none !important;
     background: transparent !important;
     padding: 10px 15px !important;
@@ -208,6 +214,9 @@ section.forum-search {
 }
 
 .search-form button {
+    flex-shrink: 0 !important;
+    width: auto !important;
+    white-space: nowrap !important;
     background: #4a90e2 !important;
     color: #fff !important;
     border: none !important;
@@ -228,6 +237,8 @@ section.forum-search {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
     background: #fff !important;
     border: 1px solid #e0e0e0 !important;
     border-radius: 0 !important;
@@ -268,9 +279,13 @@ section.forum-controls {
     font-size: 13px !important;
     color: #333 !important;
     margin: 0 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
 }
 
 .controls-right select {
+    min-width: 0 !important;
+    max-width: 100% !important;
     border: 1px solid #e0e0e0 !important;
     background: #fff !important;
     padding: 6px 10px !important;
@@ -296,12 +311,71 @@ section.forum-controls {
     border-radius: 0 !important;
 }
 
+/* 헤더와 행은 동일한 4열(제목/작성자/통계/날짜) 그리드를 공유한다.
+   minmax(0, 1fr): 긴 제목/URL이 열을 밀어내지 않도록 최소폭을 0으로 허용 */
+.posts-header,
+.post-row {
+    grid-template-columns: minmax(0, 1fr) 110px 90px 100px !important;
+    gap: 12px !important;
+    padding: 0 15px !important;
+}
+
+.posts-header {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    font-size: 13px !important;
+}
+
+.posts-table .post-row > div {
+    min-width: 0 !important;
+}
+
+.posts-header > div {
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+}
+
+.post-author {
+    align-items: flex-start !important;
+    gap: 2px !important;
+}
+
+.post-author .role-badge {
+    padding: 1px 8px !important;
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+}
+
+.post-author .username {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.post-stats {
+    gap: 2px !important;
+    font-size: 11px !important;
+}
+
+.post-stats span {
+    padding: 0 !important;
+    background: transparent !important;
+    text-align: left !important;
+}
+
+.post-date {
+    font-size: 12px !important;
+    text-align: left !important;
+}
+
 .post-row {
     display: grid !important;
-    grid-template-columns: 70px 1fr 120px !important;
-    gap: 6px !important;
-    padding: 0 15px !important;
-    height: 50px !important;
+    min-height: 50px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
     border-bottom: 1px solid #f0f0f0 !important;
     background: #fff !important;
     transition: background-color 0.2s !important;
@@ -311,6 +385,7 @@ section.forum-controls {
 
 .post-row:hover {
     background: #fafafa !important;
+    transform: none !important;
 }
 
 .post-row:last-child {
@@ -465,6 +540,18 @@ footer small {
         padding: 10px !important;
     }
 
+    /* 상단 네비게이션이 두 줄로 깨지지 않도록 간격을 줄이고 줄바꿈을 막는다 */
+    nav ul {
+        padding: 8px 10px !important;
+        gap: 4px !important;
+    }
+
+    nav a,
+    nav button {
+        padding: 5px 6px !important;
+        white-space: nowrap !important;
+    }
+
     .posts-header {
         display: none !important;
     }
@@ -499,7 +586,17 @@ footer small {
     }
 
     .controls-right select {
+        flex: 1 !important;
+        width: auto !important;
+    }
+
+    .controls-left {
         width: 100% !important;
+    }
+
+    .controls-left a {
+        display: block !important;
+        text-align: center !important;
     }
 }
 
@@ -520,6 +617,11 @@ footer small {
 [data-theme="dark"] footer {
     background: #2a2a2a !important;
     border-color: #333 !important;
+}
+
+[data-theme="dark"] .posts-header {
+    background: #333 !important;
+    border-bottom: 1px solid #444 !important;
 }
 
 [data-theme="dark"] .post-row {

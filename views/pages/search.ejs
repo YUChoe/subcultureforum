@@ -16,7 +16,7 @@
                                 type="search"
                                 name="q"
                                 placeholder="🔍 게시글, 댓글 검색..."
-                                value="${query || ''}"
+                                value="${escapeHtml(query)}"
                                 autocomplete="off"
                                 class="search-input"
                             >
@@ -26,7 +26,7 @@
                             </button>
                         </div>
 
-                        ${categoryId ? '<input type="hidden" name="category" value="' + categoryId + '">' : ''}
+                        ${categoryId ? '<input type="hidden" name="category" value="' + escapeHtml(categoryId) + '">' : ''}
                     </form>
 
                     <div class="search-tips">
@@ -42,7 +42,7 @@
                 ${query ? `
                     <section class="search-results">
                         <header class="results-header">
-                            <h2>📋 "${query}" 검색 결과</h2>
+                            <h2>📋 "${escapeHtml(query)}" 검색 결과</h2>
                             ${results && results.length > 0 ?
                                 '<p class="results-count">총 ' + results.length + '개의 결과를 찾았습니다</p>' :
                                 '<p class="results-count">검색 결과가 없습니다</p>'
@@ -56,19 +56,19 @@
                                         <header class="result-header">
                                             <h3 class="result-title">
                                                 <a href="/forum/post/${result.id}">
-                                                    ${result.title}
+                                                    ${escapeHtml(result.title)}
                                                 </a>
                                             </h3>
                                             <div class="result-meta">
-                                                <span class="result-category">📂 ${result.category_name || '알 수 없음'}</span>
-                                                <span class="result-author">👤 ${result.username || '알 수 없음'}</span>
+                                                <span class="result-category">📂 ${escapeHtml(result.category_name || '알 수 없음')}</span>
+                                                <span class="result-author">👤 ${escapeHtml(result.username || '알 수 없음')}</span>
                                                 <span class="result-date">📅 ${new Date(result.created_at).toLocaleDateString('ko-KR')}</span>
                                             </div>
                                         </header>
 
                                         <div class="result-content">
                                             <p class="result-excerpt">
-                                                ${result.excerpt || (result.content ? result.content.substring(0, 200) + '...' : '내용 미리보기가 없습니다.')}
+                                                ${escapeHtml(result.excerpt || (result.content ? result.content.substring(0, 200) + '...' : '내용 미리보기가 없습니다.'))}
                                             </p>
                                         </div>
 

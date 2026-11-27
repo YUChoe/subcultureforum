@@ -7,13 +7,13 @@
                 <nav aria-label="breadcrumb">
                     <ol>
                         <li><a href="/">홈</a></li>
-                        <li>${subforum.name}</li>
+                        <li>${escapeHtml(subforum.name)}</li>
                     </ol>
                 </nav>
 
                 <div class="subforum-header">
-                    <h1>${subforum.name}</h1>
-                    <p>${subforum.description || ''}</p>
+                    <h1>${escapeHtml(subforum.name)}</h1>
+                    <p>${escapeHtml(subforum.description)}</p>
 
                     <div class="subforum-stats">
                         <span>게시글: ${subforum.post_count || 0}개</span>
@@ -74,13 +74,13 @@
                             <article class="post-row ${post.is_recent ? 'recent' : ''}">
                                 <div class="post-title">
                                     <a href="/forum/subforum/${subforum.id}/post/${post.id}" class="post-title-link">
-                                        ${post.title}
+                                        ${escapeHtml(post.title)}
                                         ${post.has_recent_comments ? '<span class="badge">NEW</span>' : ''}
                                     </a>
                                 </div>
 
                                 <div class="post-author">
-                                    <span class="username">${post.username}</span>
+                                    <span class="username">${escapeHtml(post.username)}</span>
                                     ${post.role === 'super_admin' ? '<span class="role-badge admin">관리자</span>' : ''}
                                     ${post.role === 'moderator' ? '<span class="role-badge moderator">모더레이터</span>' : ''}
                                 </div>
@@ -91,7 +91,7 @@
                                 </div>
 
                                 <div class="post-date">
-                                    <time datetime="${post.created_at}">
+                                    <time datetime="${escapeHtml(post.created_at)}">
                                         ${new Date(post.created_at).toLocaleDateString('ko-KR')}
                                     </time>
                                     ${post.last_comment_at && post.last_comment_at !== post.created_at ?

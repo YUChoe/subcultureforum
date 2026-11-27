@@ -10,7 +10,7 @@
                 </hgroup>
 
                 ${user ?
-                    '<div class="welcome-message"><p>👋 환영합니다, <strong>' + user.username + '</strong>님!</p></div>' :
+                    '<div class="welcome-message"><p>👋 환영합니다, <strong>' + escapeHtml(user.username) + '</strong>님!</p></div>' :
                     '<div class="cta-buttons"><a href="/auth/register" role="button">🚀 지금 가입하기</a><a href="/auth/login" role="button" class="outline">🔑 로그인</a></div>'
                 }
 
@@ -59,7 +59,7 @@
                                 <header>
                                     <h3>
                                         <a href="/forum/subforum/${category.id}" class="category-link">
-                                            ${category.name}
+                                            ${escapeHtml(category.name)}
                                         </a>
                                     </h3>
                                 </header>
@@ -69,10 +69,10 @@
                                         ${category.recent_posts.map(post => `
                                             <div class="recent-post-item">
                                                 <a href="/forum/subforum/${category.id}/post/${post.id}" class="post-link">
-                                                    ${post.title}
+                                                    ${escapeHtml(post.title)}
                                                 </a>
                                                 <div class="post-meta">
-                                                    <span class="post-author">${post.username}</span>
+                                                    <span class="post-author">${escapeHtml(post.username)}</span>
                                                     <span class="post-date">${new Date(post.created_at).toLocaleDateString('ko-KR')}</span>
                                                 </div>
                                             </div>
@@ -110,14 +110,14 @@
                                 <header>
                                     <h4>
                                         <a href="/forum/subforum/${post.category_id}/post/${post.id}">
-                                            ${post.title}
+                                            ${escapeHtml(post.title)}
                                         </a>
                                     </h4>
                                 </header>
                                 <footer>
                                     <small>
-                                        ${post.subforum_name || ''} |
-                                        ${post.username || '알 수 없음'} |
+                                        ${escapeHtml(post.subforum_name)} |
+                                        ${escapeHtml(post.username || '알 수 없음')} |
                                         조회 ${post.view_count} |
                                         댓글 ${post.comment_count}
                                     </small>
