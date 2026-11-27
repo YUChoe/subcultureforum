@@ -296,12 +296,52 @@ section.forum-controls {
     border-radius: 0 !important;
 }
 
+/* 헤더와 행은 동일한 4열(제목/작성자/통계/날짜) 그리드를 공유한다.
+   minmax(0, 1fr): 긴 제목/URL이 열을 밀어내지 않도록 최소폭을 0으로 허용 */
+.posts-header,
+.post-row {
+    grid-template-columns: minmax(0, 1fr) 110px 90px 100px !important;
+    gap: 12px !important;
+    padding: 0 15px !important;
+}
+
+.posts-header {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    font-size: 13px !important;
+}
+
+.posts-table .post-row > div {
+    min-width: 0 !important;
+}
+
+.post-author .username {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.post-stats {
+    gap: 2px !important;
+    font-size: 11px !important;
+}
+
+.post-stats span {
+    padding: 0 !important;
+    background: transparent !important;
+    text-align: left !important;
+}
+
+.post-date {
+    font-size: 12px !important;
+}
+
 .post-row {
     display: grid !important;
-    grid-template-columns: 70px 1fr 120px !important;
-    gap: 6px !important;
-    padding: 0 15px !important;
-    height: 50px !important;
+    min-height: 50px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
     border-bottom: 1px solid #f0f0f0 !important;
     background: #fff !important;
     transition: background-color 0.2s !important;

@@ -382,6 +382,30 @@
             font-size: 0.95rem;
         }
 
+        /* 긴 단어/URL, 이미지, 표가 카드 밖으로 넘치지 않도록 처리 */
+        .post-title,
+        .post-body,
+        .markdown-content,
+        .comments-list .comment {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .markdown-content table {
+            display: block;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .markdown-content pre {
+            max-width: 100%;
+        }
+
         .markdown-content h1, .markdown-content h2, .markdown-content h3,
         .markdown-content h4, .markdown-content h5, .markdown-content h6 {
             margin-top: 1rem;
