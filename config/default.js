@@ -49,7 +49,7 @@ module.exports = {
     site: {
         name: 'NOIZZE',
         // 절대 URL 생성 기준 (canonical, sitemap, og:url). 예: https://noizze.net (끝의 / 는 제거됨)
-        url: (process.env.SITE_URL || ('http://localhost:' + (process.env.PORT || 8888))).replace(/\/+$/, ''),
+        url: (process.env.SITE_URL || ('http://localhost:' + (process.env.PORT || 8000))).replace(/\/+$/, ''),
         // sitemap 메모리 캐시 TTL (초)
         seoCacheTtlSeconds: parseInt(process.env.SEO_CACHE_TTL_SECONDS, 10) || 3600,
         description: 'NOIZZE 커뮤니티 포럼',

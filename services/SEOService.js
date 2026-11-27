@@ -172,7 +172,8 @@ class SEOService {
     /** 색인 대상이 아닌 페이지(로그인, 관리자, 작성/수정 폼, 오류 등) */
     noindex(title) {
         return {
-            title: title ? `${title} - ${this.site.name}` : this.site.name,
+            title: !title ? this.site.name
+                : (title.includes(this.site.name) ? title : `${title} - ${this.site.name}`),
             description: this.site.description,
             canonical: null,
             robots: 'noindex, nofollow',

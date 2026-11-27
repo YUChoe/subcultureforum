@@ -5,7 +5,7 @@
 class StructuredDataGenerator {
     constructor(siteConfig = {}) {
         this.siteName = siteConfig.name || 'NOIZZE';
-        this.siteUrl = (siteConfig.url || 'http://localhost:8888').replace(/\/+$/, '');
+        this.siteUrl = (siteConfig.url || 'http://localhost:8000').replace(/\/+$/, '');
     }
 
     /**

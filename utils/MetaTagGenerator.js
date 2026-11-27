@@ -11,7 +11,7 @@ class MetaTagGenerator {
     constructor(siteConfig = {}) {
         this.siteName = siteConfig.name || 'NOIZZE';
         this.siteDescription = siteConfig.description || 'NOIZZE 커뮤니티 포럼';
-        this.siteUrl = (siteConfig.url || 'http://localhost:8888').replace(/\/+$/, '');
+        this.siteUrl = (siteConfig.url || 'http://localhost:8000').replace(/\/+$/, '');
         this.defaultImage = siteConfig.defaultImage || {
             url: `${this.siteUrl}/images/og-default.png`,
             width: 1200,
