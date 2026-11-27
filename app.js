@@ -99,6 +99,9 @@ async function initializeApp() {
             next();
         });
 
+        // CSRF 토큰 검증 (POST/PUT/PATCH/DELETE)
+        app.use(require('./middleware/csrf').csrfProtection);
+
         // 라우트별 권한 검사 미들웨어 (라우터 설정 전에 적용)
         app.use(checkRoutePermission);
 

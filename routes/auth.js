@@ -113,20 +113,7 @@ router.post('/register', [
     }
 });
 
-// 로그아웃 (GET과 POST 모두 지원)
-router.get('/logout', (req, res) => {
-    if (req.session) {
-        req.session.destroy((err) => {
-            if (err) {
-                console.error('로그아웃 오류:', err);
-            }
-            res.redirect('/');
-        });
-    } else {
-        res.redirect('/');
-    }
-});
-
+// 로그아웃 (POST 만 지원, CSRF 토큰 필요)
 router.post('/logout', (req, res) => {
     if (req.session) {
         req.session.destroy((err) => {

@@ -23,7 +23,7 @@
                 </div>
                 ` : ''}
 
-                <form method="POST" action="/forum/subforum/${subforum.id}/post/${post.id}/edit" enctype="multipart/form-data">
+                <form method="POST" action="/forum/subforum/${subforum.id}/post/${post.id}/edit?_csrf=${csrfToken()}" enctype="multipart/form-data">
                     <div class="grid">
                         <label for="title">
                             제목 *
