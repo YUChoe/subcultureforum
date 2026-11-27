@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const path = require('path');
 const crypto = require('crypto');
 
@@ -72,7 +73,26 @@ async function initializeApp() {
         app.use(express.static(path.join(__dirname, 'public')));
 
         // 세션 설정
+        // 파일 기반 세션 저장소: 서버를 재시작해도 로그인이 유지되고, 메모리에 세션이 계속 쌓이지 않는다.
+        // 저장 위치는 SESSION_DIR (기본값: 프로젝트의 ./sessions). 만료된 세션 파일은 reapInterval 마다 삭제한다.
+        const sessionTtlSeconds = 24 * 60 * 60; // 쿠키 maxAge(24시간)와 동일
+        const sessionStore = new FileStore({
+            path: process.env.SESSION_DIR || path.join(__dirname, 'sessions'),
+            ttl: sessionTtlSeconds,
+            reapInterval: 60 * 60, // 1시간마다 만료된 세션 파일 정리
+            retries: 5,
+            factor: 1,
+            minTimeout: 50,
+            maxTimeout: 200,
+            logFn: () => {}
+        });
+
+        // 요청마다 세션 파일을 다시 쓰지 않는다. 쿠키 만료 시각은 어차피 로그인/세션 변경 시점 기준(24시간)이고,
+        // 같은 세션으로 동시에 들어온 요청들이 파일을 동시에 덮어쓰다 실패(Windows 의 EPERM 등)하는 것을 막는다.
+        sessionStore.touch = (sessionId, session, callback) => callback && callback();
+
         app.use(session({
+            store: sessionStore,
             secret: resolveSessionSecret(),
             resave: false,
             saveUninitialized: false,
@@ -81,7 +101,7 @@ async function initializeApp() {
                 secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProduction,
                 httpOnly: true,
                 sameSite: 'lax', // 다른 사이트에서의 POST 요청에 쿠키가 전송되지 않도록 (CSRF 완화)
-                maxAge: 24 * 60 * 60 * 1000 // 24시간
+                maxAge: sessionTtlSeconds * 1000 // 24시간
             }
         }));
 
@@ -125,6 +145,10 @@ async function initializeApp() {
         // 에러 처리 미들웨어
         app.use((err, req, res, next) => {
             console.error('서버 오류:', err);
+            if (res.headersSent) {
+                // 이미 응답이 나간 뒤의 오류(예: 세션 저장 실패)는 Express 기본 처리기에 맡긴다
+                return next(err);
+            }
             res.status(err.status || 500).render('pages/error', {
                 title: '서버 오류',
                 error: {
